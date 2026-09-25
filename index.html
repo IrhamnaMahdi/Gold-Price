@@ -1,0 +1,2213 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gold Price Intelligence — Executive Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* Palet resmi BSI + turunannya (tint/shade). Prioritas highlight: #08A19E (tosca) & #F8BC51 (gold). */
+    --bsi-priority-teal:#08A19E;
+    --bsi-priority-gold:#F8BC51;
+    --bsi-orange:#ED8B00;
+    --bsi-blue:#0047BB;
+    --bsi-navy:#001489;
+    --bsi-white:#FFFFFF;
+    --bsi-charcoal:#3C3C3C;
+
+    --ink:#056967;
+    --ink-soft:#08A19E;
+    --ink-line:rgba(255,255,255,.14);
+    --paper:#FFFFFF;
+    --paper-card:#FFFFFF;
+    --line:#E6E9F5;
+    --gold:#F8BC51;
+    --gold-bright:#F9C466;
+    --gold-pale:#FEF5E5;
+    --green:#08A19E;
+    --green-pale:#DFF3F2;
+    --red:#AB6400;
+    --red-pale:#F5ECE0;
+    --amber:#ED8B00;
+    --amber-pale:#FDF0DE;
+    --blue:#0047BB;
+    --blue-pale:#E6EDF8;
+    --teal:#08A19E;
+    --teal-pale:#DFF3F2;
+    --purple:#001489;
+    --purple-pale:#E6EDF8;
+    --ink-text:#3C3C3C;
+    --muted:#767676;
+    --shadow:0 1px 3px rgba(0,20,137,.06), 0 6px 18px rgba(0,20,137,.05);
+    --shadow-hover:0 4px 10px rgba(0,20,137,.08), 0 14px 30px rgba(0,20,137,.10);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'IBM Plex Sans',sans-serif;
+    background:var(--paper);
+    color:var(--ink-text);
+    -webkit-font-smoothing:antialiased;
+  }
+  .num{font-family:'IBM Plex Mono',monospace; font-variant-numeric:tabular-nums;}
+  .app{display:flex; min-height:100vh;}
+  @media (max-width:860px){ .app{flex-direction:column; min-height:auto;} }
+
+  /* ---------- SIDEBAR ---------- */
+  .sidebar{
+    width:236px; flex:none; background:linear-gradient(180deg,#056967,#08A19E 55%,#056967); color:#DFF3F2;
+    padding:22px 0 22px 0; position:sticky; top:0; height:100vh; overflow-y:auto; box-shadow:2px 0 18px rgba(0,0,0,.12);
+  }
+  @media (max-width:860px){
+    .sidebar{width:100%; height:auto; position:relative; top:auto; padding:14px 0; box-shadow:0 2px 14px rgba(0,0,0,.12);}
+  }
+  .brand{padding:0 20px 18px 20px; border-bottom:1px solid var(--ink-line); margin-bottom:10px;}
+  @media (max-width:860px){ .brand{padding:0 16px 12px 16px; margin-bottom:8px;} .brand-sub{display:none;} }
+  .ribbon{height:5px; background:linear-gradient(90deg,#F8BC51,#08A19E,#0047BB,#001489,#ED8B00,#F8BC51); margin:-30px -38px 26px -38px; border-radius:0 0 3px 3px;}
+  @media (max-width:760px){.ribbon{margin:-22px -16px 22px -16px;}}
+  .brand-mark{background:linear-gradient(90deg,#FEF5E5,#F8BC51 60%,#FEF5E5); -webkit-background-clip:text; background-clip:text; color:transparent; font-family:'IBM Plex Serif',serif; font-size:19px; font-weight:700; letter-spacing:.2px;}
+  .brand-sub{font-size:11px; color:#BDEAE7; margin-top:4px; line-height:1.5;}
+  .nav-wrap{position:relative;}
+  .nav-indicator{position:absolute; left:0; width:3px; background:var(--gold-bright); border-radius:0 3px 3px 0;
+    opacity:0; transition:top .3s cubic-bezier(.22,1,.36,1), height .3s cubic-bezier(.22,1,.36,1), opacity .2s ease; pointer-events:none;}
+  @media (max-width:860px){ .nav-indicator{display:none;} }
+  nav{display:flex; flex-direction:column; margin-top:6px;}
+  @media (max-width:860px){
+    nav{flex-direction:row; overflow-x:auto; margin-top:0; padding:0 10px; gap:2px; -webkit-overflow-scrolling:touch;}
+  }
+  .navbtn{
+    display:flex; align-items:center; gap:10px; text-align:left; background:none; border:none;
+    color:#CFF0EE; font-family:'IBM Plex Sans',sans-serif; font-size:13.5px; padding:11px 20px;
+    cursor:pointer; border-left:3px solid transparent; transition:background .18s ease, color .18s ease;
+  }
+  @media (max-width:860px){
+    .navbtn{padding:9px 13px; white-space:nowrap; border-left:none; border-bottom:3px solid transparent; font-size:12.5px; border-radius:6px 6px 0 0;}
+  }
+  .navbtn:hover{background:rgba(255,255,255,.06); color:#FFFFFF;}
+  .navbtn:active{background:rgba(255,255,255,.10);}
+  .navbtn.active{background:rgba(241,180,52,.16); color:#FDF4E3; border-left:3px solid var(--gold-bright); font-weight:700; box-shadow:inset 0 0 18px rgba(241,180,52,.10);}
+  @media (max-width:860px){
+    .navbtn.active{border-left:none; border-bottom:3px solid var(--gold-bright); box-shadow:none;}
+  }
+  .navbtn .n{font-family:'IBM Plex Mono',monospace; font-size:11px; color:#8AD4D0; width:16px;}
+  @media (max-width:860px){ .navbtn .n{display:none;} }
+  .navbtn.active .n{color:var(--gold-bright);}
+  .sidebar-foot{padding:16px 20px 0 20px; margin-top:12px; border-top:1px solid var(--ink-line); font-size:10.5px; color:#A8E2DF; line-height:1.6;}
+  @media (max-width:860px){ .sidebar-foot{padding:10px 16px 0 16px; margin-top:8px;} }
+  .auth-pill{display:inline-flex; align-items:center; gap:6px; font-size:11px; padding:5px 10px; border-radius:14px; cursor:pointer; border:none; font-family:'IBM Plex Sans',sans-serif; font-weight:600;}
+  .auth-pill.locked{background:rgba(255,255,255,.10); color:#DFF3F2;}
+  .auth-pill.unlocked{background:rgba(0,191,178,.22); color:#DEF7F5;}
+  .live-badge{display:inline-flex; align-items:center; gap:5px; font-size:11px; font-family:'IBM Plex Mono',monospace; padding:5px 10px; border-radius:14px; background:var(--green-pale); color:var(--green); font-weight:600;}
+  .live-dot{width:7px; height:7px; border-radius:50%; background:var(--green); animation:pulse 1.6s infinite;}
+  @keyframes pulse{0%{opacity:1;}50%{opacity:.35;}100%{opacity:1;}}
+
+  /* ---------- ANIMASI & MICRO-INTERACTION ---------- */
+  @keyframes tabFadeIn{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+  .tab-fade-in{animation:tabFadeIn .32s cubic-bezier(.22,1,.36,1) both;}
+
+  @keyframes shimmer{ 0%{background-position:-300px 0;} 100%{background-position:300px 0;} }
+  .skeleton{
+    display:inline-block; border-radius:6px; background:#EDEBE3;
+    background-image:linear-gradient(90deg, #EDEBE3 0px, #F7F5EE 60px, #EDEBE3 120px);
+    background-size:300px 100%; animation:shimmer 1.3s ease-in-out infinite;
+  }
+  .skeleton-row{display:flex; gap:10px; align-items:center; padding:10px 0;}
+
+  @keyframes flashHighlight{
+    0%{background-color:rgba(8,161,158,.22);}
+    100%{background-color:transparent;}
+  }
+  tr.flash-update td{animation:flashHighlight 2.2s ease-out;}
+
+  @media (prefers-reduced-motion: reduce){
+    .tab-fade-in, .skeleton, tr.flash-update td, .live-dot, .kpi, .card, .btn, .btn-ghost, .btn-danger, .btn-stale-ack,
+    .tabbar button, .navbtn, .nav-indicator, .ripple-effect, .custom-tooltip, button.stale-badge{
+      animation:none !important; transition:none !important;
+    }
+  }
+
+  /* ---------- MAIN ---------- */
+  main{flex:1; min-width:0; padding:30px 38px 60px 38px;}
+  @media (max-width:480px){ main{padding:18px 12px 40px 12px;} }
+  .topbar{display:flex; justify-content:flex-start; align-items:flex-start; margin-bottom:26px; flex-wrap:wrap; gap:14px;}
+  .pagetitle{font-family:'IBM Plex Serif',serif; font-size:27px; font-weight:700; background:linear-gradient(90deg,#001489,#08A19E 55%,#F8BC51); -webkit-background-clip:text; background-clip:text; color:transparent;}
+  @media (max-width:480px){ .pagetitle{font-size:21px;} }
+  .pagesub{font-size:12.5px; color:var(--muted); margin-top:4px;}
+  .pagesub-row{display:flex; align-items:center; gap:10px; margin-top:9px; flex-wrap:wrap;}
+  .datebadge{background:linear-gradient(120deg,#001489,#0047BB); color:var(--gold-pale); font-family:'IBM Plex Mono',monospace; font-size:12.5px; padding:8px 14px; border-radius:20px; white-space:nowrap; box-shadow:var(--shadow);}
+
+  .grid{display:grid; gap:16px;}
+  .kpi-grid{grid-template-columns:repeat(6,1fr);}
+  @media (max-width:1300px){.kpi-grid{grid-template-columns:repeat(3,1fr);}}
+  @media (max-width:760px){.kpi-grid{grid-template-columns:repeat(2,1fr);} main{padding:22px 16px 50px 16px;}}
+  @media (max-width:480px){.kpi-grid{grid-template-columns:1fr;}}
+  .cat-summary-grid{grid-template-columns:repeat(3,1fr);}
+  @media (max-width:900px){.cat-summary-grid{grid-template-columns:1fr;}}
+
+  .card{background:var(--paper-card); border:1px solid var(--line); border-radius:10px; padding:16px 17px; box-shadow:var(--shadow); transition:box-shadow .18s ease, transform .18s ease;}
+  .kpi{display:flex; flex-direction:column; gap:6px; min-height:118px; border-top:4px solid var(--gold-bright); position:relative;}
+  .kpi:hover{box-shadow:var(--shadow-hover); transform:translateY(-2px);}
+  .kpi-grid .card:nth-child(1){border-top-color:#F8BC51;}
+  .kpi-grid .card:nth-child(2){border-top-color:#4DBBB9;}
+  .kpi-grid .card:nth-child(3){border-top-color:#007C80;}
+  .kpi-grid .card:nth-child(4){border-top-color:#ED8B00;}
+  .kpi-grid .card:nth-child(5){border-top-color:#056967;}
+  .kpi-grid .card:nth-child(6){border-top-color:#08A19E;}
+  .kpi-label{font-size:11.5px; color:var(--muted); font-weight:600; letter-spacing:.1px; display:flex; align-items:center; gap:6px;}
+  .kpi-value{font-family:'IBM Plex Mono',monospace; font-size:20px; font-weight:700; color:var(--ink-text); line-height:1.25;}
+  .kpi-value.big{font-size:23px;}
+  .kpi-sub{font-size:11.5px; color:var(--muted);}
+  .kpi-sub.pos{color:var(--green); font-weight:600;}
+  .kpi-sub.neg{color:var(--red); font-weight:600;}
+
+  .section-title{font-family:'IBM Plex Serif',serif; font-size:17.5px; font-weight:700; margin:34px 0 12px 0; color:var(--ink-text); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; padding-bottom:9px; border-bottom:3px solid transparent; border-image:linear-gradient(90deg,#F8BC51,#08A19E,#0047BB) 1; }
+  .section-title:first-of-type{margin-top:0;}
+  .section-note{font-size:11.5px; color:var(--muted); font-family:'IBM Plex Sans',sans-serif; font-weight:400;}
+
+  select, input[type=date], input[type=text], input[type=number]{
+    font-family:'IBM Plex Sans',sans-serif; font-size:12.5px; padding:7px 9px; border:1px solid var(--line);
+    border-radius:3px; background:#fff; color:var(--ink-text);
+  }
+  .datepart-sel{padding:7px 8px; min-width:56px;}
+  .datepart-group{display:inline-flex; gap:6px; align-items:center;}
+  input[type=number]{font-family:'IBM Plex Mono',monospace;}
+  label{font-size:11px; color:var(--muted); display:block; margin-bottom:4px;}
+
+  table{width:100%; border-collapse:collapse; font-size:12.5px;}
+  thead th{
+    text-align:left; font-family:'IBM Plex Sans',sans-serif; font-weight:700; font-size:11px; color:#fff;
+    background:linear-gradient(120deg,#056967,#08A19E); border-bottom:none; padding:10px 10px; white-space:nowrap;
+  }
+  tbody td{padding:8px 10px; border-bottom:1px solid var(--line); white-space:nowrap;}
+  tbody tr:hover{background:#F5F7FC;}
+  .num-cell{font-family:'IBM Plex Mono',monospace; text-align:right;}
+  .tag{display:inline-block; padding:3px 10px; border-radius:12px; font-size:10.5px; font-weight:700;}
+  .tag-green{background:var(--green-pale); color:var(--green);}
+  .tag-amber{background:var(--amber-pale); color:var(--amber);}
+  .tag-red{background:var(--red-pale); color:var(--red);}
+  .tag-blue{background:var(--blue-pale); color:var(--blue);}
+  .row-rank1{background:var(--green-pale) !important;}
+  .row-rank2{background:var(--gold-pale) !important;}
+  .row-rankLast{background:var(--red-pale) !important;}
+  .row-bsi td:first-child{border-left:3px solid var(--blue);}
+  .table-wrap{overflow-x:auto; border:1px solid var(--line); border-radius:10px; box-shadow:var(--shadow);}
+  .table-wrap table{min-width:640px;}
+  .table-wrap thead th, .table-wrap tbody td{white-space:nowrap;}
+
+  .legend{display:flex; gap:16px; flex-wrap:wrap; font-size:11.5px; color:var(--muted); margin-bottom:10px;}
+  .legend span{display:inline-flex; align-items:center; gap:6px;}
+  .dot{width:9px; height:9px; border-radius:2px; display:inline-block;}
+
+  .chart-card{padding:20px; box-shadow:none;}
+  .svgchart{width:100%; height:auto; display:block;}
+  .svgchart .gridline{stroke:#E6E9F5; stroke-width:1;}
+  .svgchart .axis-label{font-family:'IBM Plex Mono',monospace; font-size:10.5px; fill:var(--muted);}
+  .svgchart .series-line{fill:none; stroke-width:3; stroke-linecap:round; stroke-linejoin:round;}
+  .svgchart .series-dot{stroke:#fff; stroke-width:1.4;}
+  .hover-capture{cursor:crosshair;}
+  .chart-tooltip{
+    position:fixed; display:none; z-index:80; background:#001489; color:#fff; padding:10px 13px; border-radius:8px;
+    font-size:11.5px; font-family:'IBM Plex Sans',sans-serif; box-shadow:0 6px 20px rgba(0,0,0,.25); pointer-events:none;
+    min-width:150px; max-width:260px;
+  }
+  /* Ripple klik (Material-style) — muncul dari titik klik, warna ikut warna teks tombolnya sendiri */
+  .ripple-effect{position:absolute; border-radius:50%; background:currentColor; opacity:.3; transform:scale(0); pointer-events:none; animation:rippleAnim .55s ease-out;}
+  @keyframes rippleAnim{ to{ transform:scale(1); opacity:0; } }
+  /* Tooltip custom (fade+scale halus) pengganti title bawaan browser */
+  .custom-tooltip{
+    position:fixed; z-index:90; background:var(--ink); color:#fff; padding:7px 12px; border-radius:6px;
+    font-size:11.5px; font-family:'IBM Plex Sans',sans-serif; line-height:1.5; max-width:260px;
+    box-shadow:0 6px 18px rgba(0,0,0,.22); pointer-events:none;
+    opacity:0; transform:translateY(4px) scale(.96); transition:opacity .15s ease, transform .15s ease;
+  }
+  .custom-tooltip.show{opacity:1; transform:translateY(0) scale(1);}
+  .chart-legend{display:flex; gap:16px; flex-wrap:wrap; margin-top:14px; font-size:12px; color:var(--ink-text);}
+  .chart-legend span{display:inline-flex; align-items:center; gap:6px;}
+  .chart-legend i{width:11px; height:11px; border-radius:2px; display:inline-block;}
+  .chart-tt{font-family:'IBM Plex Mono',monospace; font-size:9.5px; fill:var(--ink-text);}
+  .bullet-row{display:grid; grid-template-columns:130px 1fr 130px; align-items:center; gap:14px; padding:10px 0; border-bottom:1px solid var(--line);}
+  .bullet-row:last-child{border-bottom:none;}
+  .bullet-track{background:#EDE9DC; border-radius:3px; height:22px; position:relative; overflow:hidden;}
+  .bullet-fill{position:absolute; top:0; left:0; height:100%; border-radius:3px;}
+  .bullet-fill.bsi{background:var(--blue);}
+  .bullet-fill.market{background:var(--gold);}
+  .bullet-label{font-size:12px; font-weight:600;}
+  .bullet-val{font-family:'IBM Plex Mono',monospace; font-size:12.5px; text-align:right;}
+
+  .insight-list{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px;}
+  .insight-list li{background:var(--paper-card); border:1px solid var(--line); border-left:4px solid var(--gold-bright); border-radius:8px; padding:13px 15px; font-size:13px; line-height:1.55; box-shadow:var(--shadow);}
+  .insight-list b{color:var(--ink-text);}
+
+  .heat-cell{padding:6px 11px; border-radius:12px; font-size:11.5px; font-weight:700; text-align:center; display:inline-block; min-width:118px; box-shadow:0 1px 2px rgba(0,0,0,.06);}
+
+  form.input-form{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:18px;}
+  @media (max-width:900px){form.input-form{grid-template-columns:repeat(2,1fr);}}
+  @media (max-width:480px){form.input-form{grid-template-columns:1fr;}}
+  .filter-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:12px;}
+  @media (max-width:900px){.filter-grid{grid-template-columns:repeat(2,1fr);}}
+  @media (max-width:480px){.filter-grid{grid-template-columns:1fr;}}
+  .btn{
+    font-family:'IBM Plex Sans',sans-serif; font-weight:700; font-size:12.5px; padding:10px 18px; border-radius:22px;
+    border:none; background:linear-gradient(120deg,#056967,#08A19E); color:#FFFFFF; cursor:pointer;
+    box-shadow:var(--shadow); transition:transform .15s ease, box-shadow .15s ease;
+    position:relative; overflow:hidden;
+  }
+  .btn:hover{transform:translateY(-1px); box-shadow:var(--shadow-hover);}
+  .btn:active{transform:translateY(0) scale(.96);}
+  .btn-ghost{background:transparent; color:var(--ink); border:1px solid var(--line); box-shadow:none;}
+  .btn-ghost:hover{background:#DFF3F2; transform:none; box-shadow:none;}
+  .btn-ghost:active{transform:scale(.96);}
+  .btn-danger{background:transparent; border:none; color:var(--red); cursor:pointer; font-size:12px; font-weight:700;
+    position:relative; overflow:hidden; border-radius:5px; padding:3px 6px; transition:background .15s ease, transform .1s ease;}
+  .btn-danger:hover{background:var(--red-pale);}
+  .btn-danger:active{transform:scale(.92);}
+  .tabbar{display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap;}
+  .tabbar button{
+    font-family:'IBM Plex Sans',sans-serif; font-size:12px; font-weight:600; padding:8px 15px; border-radius:18px; border:1px solid var(--line);
+    background:#fff; cursor:pointer; color:var(--muted); box-shadow:var(--shadow); transition:transform .15s ease, background .18s ease, color .18s ease;
+    position:relative; overflow:hidden;
+  }
+  .tabbar button:hover{transform:translateY(-1px);}
+  .tabbar button:active{transform:translateY(0) scale(.95);}
+  .tabbar button.active{background:linear-gradient(120deg,#056967,#08A19E); color:#FFFFFF; border-color:#08A19E;}
+  .flag{font-size:11px; color:var(--muted); font-style:italic; margin-top:8px;}
+  .stale-banner{background:var(--red-pale); border:1.5px solid var(--red); border-radius:8px; padding:14px 18px; margin-bottom:22px;}
+  .stale-banner-title{font-weight:700; color:var(--red); font-size:13.5px; margin-bottom:8px; display:flex; align-items:center; gap:7px;}
+  .stale-list{display:flex; flex-direction:column; gap:8px;}
+  .stale-item{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+    background:#fff; border:1px solid rgba(171,100,0,.25); border-radius:6px; padding:8px 12px;}
+  .stale-item-text{font-size:12.5px; color:var(--ink-text); line-height:1.5;}
+  .btn-stale-ack{flex:none; font-family:'IBM Plex Sans',sans-serif; font-size:11px; font-weight:700; color:var(--green);
+    background:var(--green-pale); border:1px solid var(--green); border-radius:14px; padding:5px 12px; cursor:pointer; white-space:nowrap;
+    position:relative; overflow:hidden; transition:opacity .15s ease, transform .1s ease;}
+  .btn-stale-ack:hover{opacity:.85;}
+  .btn-stale-ack:active{transform:scale(.94);}
+  .btn-stale-ack:disabled{opacity:.6; cursor:default;}
+  button.stale-badge{display:inline-flex; align-items:center; justify-content:center; width:17px; height:17px; border-radius:50%;
+    background:var(--red-pale); color:var(--red); font-size:10px; cursor:pointer; margin-left:4px; border:1px solid var(--red);
+    padding:0; font-family:inherit; transition:background .15s ease, color .15s ease, transform .1s ease;}
+  button.stale-badge:hover{background:var(--red); color:#fff; transform:scale(1.12);}
+  button.stale-badge:active{transform:scale(.9);}
+  .empty{color:var(--muted); font-size:13px; padding:20px; text-align:center;}
+  .toast{
+    position:fixed; bottom:22px; right:22px; background:var(--ink); color:var(--gold-pale); padding:12px 20px;
+    border-radius:8px; font-size:12.5px; font-weight:600; opacity:0; transform:translateY(16px) scale(.96);
+    transition:opacity .35s cubic-bezier(.22,1,.36,1), transform .35s cubic-bezier(.22,1,.36,1);
+    pointer-events:none; z-index:50; box-shadow:0 8px 24px rgba(0,0,0,.22);
+  }
+  .toast.show{opacity:1; transform:translateY(0) scale(1);}
+
+  /* ---------- LAPORAN HARIAN ---------- */
+  #reportContent{background:#CAEBE8; padding:26px; border-radius:14px; border:1px solid var(--line); box-shadow:var(--shadow); position:relative; overflow:hidden;}
+  /* Header memakai foto template (assets/report-bg.jpg). Rasio 887:208 = bagian banner saja dari foto (sisa foto polos, tidak dipakai) */
+  .report-header{position:relative; width:100%; aspect-ratio:887/208; border-radius:12px; margin-bottom:20px; overflow:hidden;
+    container-type:inline-size;
+    background-image:url('assets/report-bg.jpg'); background-size:100% auto; background-position:top center; background-repeat:no-repeat;
+    background-color:#CAEBE8;
+    /* --date-x / --date-y = posisi titik tengah pill tanggal pada foto, dalam % dari kotak header.
+       Kalau ganti foto lagi dan posisinya meleset, cukup ubah 2 angka ini saja (dan aspect-ratio di atas kalau proporsi banner berubah). */
+    --date-x:48%; --date-y:80%;}
+  .report-date-overlay{position:absolute; left:var(--date-x); top:var(--date-y); transform:translate(-50%,-50%);
+    background:#fff; color:#056967; font-family:'IBM Plex Sans',sans-serif; font-weight:700;
+    font-size:clamp(11px, 3.1cqw, 22px); padding:0.4em 1.6em; border-radius:1.2em; white-space:nowrap; line-height:1.5;
+    box-shadow:0 1px 4px rgba(0,0,0,.12);}
+  @media (max-width:480px){ #reportContent{padding:16px;} }
+  .report-quick-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:20px;}
+  @media (max-width:640px){ .report-quick-grid{grid-template-columns:1fr;} }
+  .report-quick-card{border:1px solid var(--line); border-top:4px solid; border-radius:10px; padding:13px 15px; background:#FAFBFD; text-align:center;}
+  .report-quick-icon{font-size:20px; margin-bottom:2px;}
+  .report-quick-label{font-size:10.5px; color:var(--muted); font-weight:600; letter-spacing:.3px; text-transform:uppercase;}
+  .report-quick-company{font-weight:700; font-size:13px; color:var(--ink-text); margin-top:3px;}
+  .report-quick-price{font-family:'IBM Plex Mono',monospace; font-size:13px; color:#056967; margin-top:2px; font-weight:600;}
+  .report-quick-icon-circle{width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px; margin:0 auto 6px auto;}
+  .report-quick-delta{font-size:10px; font-weight:700; margin-top:4px;}
+  .report-spot-banner{position:relative; display:flex; align-items:center; justify-content:space-between; gap:18px; flex-wrap:wrap;
+    border:none; border-radius:12px; padding:18px 22px; margin-bottom:22px;
+    background:linear-gradient(120deg,#E9F8F7,#F5FBFA 60%); box-shadow:0 1px 3px rgba(0,0,0,.05), inset 0 0 0 1.5px #08A19E33;}
+  .report-spot-icon{font-size:30px; background:#08A19E1A; width:54px; height:54px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex:none;}
+  .report-divider{display:flex; align-items:center; gap:10px; margin:22px 0 14px 0; color:#056967; font-weight:700; font-size:12px; letter-spacing:.5px;}
+  .report-divider::before, .report-divider::after{content:''; flex:1; height:1px; background:linear-gradient(90deg, transparent, #08A19E55, transparent);}
+  .report-spot-label{font-size:12px; font-weight:700; color:#056967; letter-spacing:.5px;}
+  .report-spot-value{font-family:'IBM Plex Mono',monospace; font-size:24px; font-weight:700; color:#001489; margin-top:3px;}
+  .report-spot-stats{display:flex; gap:22px; flex-wrap:wrap;}
+  @media (max-width:480px){ .report-spot-stats{gap:14px;} }
+  .report-spot-stats div{font-size:11px; color:var(--muted); text-align:left;}
+  .report-spot-stats span{display:block; margin-bottom:2px;}
+  .report-spot-stats b{font-family:'IBM Plex Mono',monospace; font-size:13px; color:var(--ink-text);}
+  .report-card{margin-bottom:18px; border:1px solid var(--line); border-radius:12px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,.04);}
+  .report-card-head{color:#fff; font-weight:700; font-size:14px;
+    padding:10px 15px; display:flex; align-items:center; gap:9px;}
+  .report-card-icon{font-size:15px;}
+  .report-card-count{margin-left:auto; font-size:10.5px; font-weight:600; background:rgba(255,255,255,.22); padding:3px 10px; border-radius:10px;}
+  .report-card .table-wrap{border:none; border-radius:0; box-shadow:none;}
+  .report-card table{font-size:11.5px; background:#fff;}
+  .report-card tbody tr{background:#fff;}
+  .report-card thead th{padding:6px 8px; font-size:10px;}
+  .report-card tbody td{padding:5px 8px;}
+  .report-footer{font-size:11px; color:var(--muted); text-align:center; margin-top:10px; padding-top:14px; border-top:1px dashed var(--line);}
+  .report-footer-brand{font-weight:700; color:#056967; font-size:12px; margin-bottom:4px;}
+  /* Saat proses Download Gambar: pastikan tabel yang biasanya di-scroll horizontal ikut tercapture penuh, tidak terpotong */
+  #reportContent.capturing-image{width:960px; max-width:none;}
+  #reportContent.capturing-image .table-wrap{overflow:visible !important;}
+  #reportContent.capturing-image table{min-width:0 !important;}
+
+  @media print{
+    body *{visibility:hidden;}
+    #reportContent, #reportContent *{visibility:visible;}
+    #reportContent{position:absolute; left:0; top:0; width:100%; box-shadow:none; border:none;}
+    .sidebar, .ribbon, .topbar, .tabbar, .datepart-group, #btnDownloadReportImg{display:none !important;}
+  }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">Gold Price Intel</div>
+      <div class="brand-sub">Executive Monitoring Dashboard<br>Data emas harian · Multi-supplier</div>
+    </div>
+    <div class="nav-wrap">
+      <div id="navIndicator" class="nav-indicator"></div>
+      <nav id="navbar"></nav>
+    </div>
+    <div id="authWidget" class="sidebar-foot"></div>
+  </aside>
+  <main id="main"></main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+/* =====================================================================
+   DATA MODEL
+   ===================================================================== */
+const CATEGORY_META = {
+  rekening: {label:'Rekening Emas (Aplikasi)', short:'Rekening',
+    companies:['BSI (Byond)','Antam (Brankas)','Tring (Pegadaian Digital)','Pluang (Antam) 1 gr','IndoGold 1 gr','Lakuemas','Brimo 1 gr','Treasury']},
+  fisik: {label:'Fisik 1 Gram', short:'Fisik 1gr',
+    companies:['BSI Gold 1 gr','Antam (Fisik) 1 gr','Hartadinata (emasku) 1 gr','Lotus Archi','UBS','Galeri 24','Habibie Gold (LM Antam)','Agung Cikini Gold Center (LM Antam)','Mulia Gold (LM Antam)','StoneX']},
+  kilobar: {label:'Fisik Kilobar', short:'Kilobar',
+    companies:['BSI Gold 1000 gr','Hartadinata (emasku) 1000 gr','UOB (Cast Bars 1 kilobar)','StoneX (kilogram)','Lotus Archi 1000 gr','Galeri 24 1000 gr','Amman Mineral Nusa Tenggara 1000 gr','XAU','Loco London']}
+};
+const KILOBAR_SHORT = {
+  'BSI Gold 1000 gr':'BSI','Amman Mineral Nusa Tenggara 1000 gr':'AMNT','Lotus Archi 1000 gr':'Lotus',
+  'Hartadinata (emasku) 1000 gr':'Hartadinata','UOB (Cast Bars 1 kilobar)':'UOB'
+};
+const TREND_COMPANIES = Object.keys(KILOBAR_SHORT);
+// Warna disesuaikan tema/brand masing-masing perusahaan (sejauh memungkinkan)
+const BRAND_COLORS = {
+  'BSI':'#08A19E',
+  'INDOGOLD':'#E65100',
+  'TRING':'#00C853',
+  'BRIMO':'#00529C',
+  'PLUANG':'#7C4DFF',
+  'TREASURY':'#FFD700',
+  'LAKUEMAS':'#FF1744',
+  'HARTADINATA':'#880E4F',
+  'STONEX':'#263238',
+  'LOTUS':'#F48FB1',
+  'MULIA':'#F57F17',
+  'GALERI 24':'#2E7D32',
+  'UBS':'#D50000',
+  'HABIBIE':'#8D6E63',
+  'AGUNG CIKINI':'#4A148C',
+  'AMMAN':'#003676',
+  'LOCO LONDON':'#2979FF',
+  'XAU':'#FF6D00',
+  'UOB':'#002D62',
+  'ANTAM':'#B78103'   // diletakkan terakhir: beberapa nama LM Antam (Mulia/Habibie/Agung Cikini) mengandung kata "Antam" juga
+};
+function brandColor(company, fallbackIndex){
+  const up = company.toUpperCase();
+  for(const key in BRAND_COLORS){ if(up.includes(key)) return BRAND_COLORS[key]; }
+  return PALETTE[fallbackIndex % PALETTE.length];
+}
+
+/* =====================================================================
+   FIREBASE (sumber data bersama & real-time)
+   ===================================================================== */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, setPersistence, inMemoryPersistence } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyA3HHp5toqwj8mRMHBfF7M_BHBSFv-jB2c",
+  authDomain: "gold-price-dashboard-29465.firebaseapp.com",
+  projectId: "gold-price-dashboard-29465",
+  storageBucket: "gold-price-dashboard-29465.firebasestorage.app",
+  messagingSenderId: "696613582304",
+  appId: "1:696613582304:web:c9a203781981a073b8a785"
+};
+const fbApp = initializeApp(firebaseConfig);
+const db = getFirestore(fbApp);
+const auth = getAuth(fbApp);
+// Sesi edit sengaja TIDAK disimpan permanen — kalau halaman di-refresh, status login hilang dan PIN harus dimasukkan ulang.
+const authPersistenceReady = setPersistence(auth, inMemoryPersistence).catch(err=>console.error('Gagal set auth persistence', err));
+const WRITE_EMAIL = 'tim@gold-dashboard.internal'; // identitas login bersama, bukan email sungguhan
+
+let RECORDS = [];
+let STALE_ACKS = new Set(); // key: category|company|tanggal-terakhir-window -> sudah dikonfirmasi manual "harga memang segini"
+let dataLoaded = false;
+let loadError = null;
+let isEditMode = false;
+let lastSyncAt = null;
+
+onAuthStateChanged(auth, user=>{
+  isEditMode = !!user;
+  renderAuthWidget();
+});
+
+function docToRecords(dateId, data){
+  const out = [];
+  ['rekening','fisik','kilobar'].forEach(cat=>{
+    (data[cat]||[]).forEach(entry=>{
+      if(!entry || !entry.company) return;
+      out.push({date:dateId, category:cat, company:entry.company, beli:entry.beli, jual:entry.jual===undefined?null:entry.jual, updatedAt:entry.updatedAt||null});
+    });
+  });
+  return out;
+}
+function staleAckKey(category, company, date){ return `${category}|${company}|${date}`; }
+
+let RECENT_CHANGES = new Map(); // key: category|date|company -> timestamp perubahan (ms), untuk efek flash saat live update masuk
+
+function startLiveSync(){
+  const col = collection(db,'prices');
+  onSnapshot(col, snapshot=>{
+    const all = [];
+    snapshot.forEach(docSnap=>{ all.push(...docToRecords(docSnap.id, docSnap.data())); });
+
+    if(dataLoaded){
+      // tandai baris yang nilainya berubah dibanding sebelumnya, supaya bisa di-highlight sesaat di tabel
+      const oldMap = new Map();
+      RECORDS.forEach(r=>oldMap.set(r.category+'|'+r.date+'|'+r.company, r.beli+'|'+r.jual));
+      const now = Date.now();
+      all.forEach(r=>{
+        const key = r.category+'|'+r.date+'|'+r.company;
+        const sig = r.beli+'|'+r.jual;
+        if(!oldMap.has(key) || oldMap.get(key)!==sig) RECENT_CHANGES.set(key, now);
+      });
+      RECENT_CHANGES.forEach((t,k)=>{ if(now-t>8000) RECENT_CHANGES.delete(k); });
+    }
+
+    RECORDS = all;
+    dataLoaded = true;
+    loadError = null;
+    lastSyncAt = new Date();
+    if(activeTab==='input'){
+      // hindari menimpa form yang sedang diisi user; cukup update data diam-diam
+      renderAuthWidget();
+      const badge = document.getElementById('liveBadge');
+      if(badge) badge.outerHTML = liveBadgeHtml();
+    } else {
+      renderAll();
+    }
+  }, err=>{
+    console.error('Firestore sync error', err);
+    loadError = err.message || String(err);
+    renderAll();
+  });
+  const ackCol = collection(db,'staleAck');
+  onSnapshot(ackCol, snapshot=>{
+    const s = new Set();
+    snapshot.forEach(docSnap=>s.add(docSnap.id));
+    STALE_ACKS = s;
+    if(dataLoaded && activeTab!=='input') renderAll();
+  }, err=>console.error('Stale-ack sync error', err));
+}
+async function acknowledgeStale(category, company, date){
+  if(!(await ensureEditAccess())) return false;
+  const key = staleAckKey(category, company, date);
+  await setDoc(doc(db,'staleAck',key), {category, company, date, verifiedAt:new Date().toISOString()});
+  return true;
+}
+
+async function ensureEditAccess(){
+  if(auth.currentUser) return true;
+  await authPersistenceReady;
+  const pin = prompt('Masukkan PIN tim untuk menambah/mengubah data:');
+  if(!pin) return false;
+  try{
+    await signInWithEmailAndPassword(auth, WRITE_EMAIL, pin);
+    return true;
+  }catch(e){
+    alert('PIN salah, atau gagal masuk. Silakan coba lagi.');
+    return false;
+  }
+}
+
+async function upsertEntry(date, category, company, beli, jual){
+  if(!(await ensureEditAccess())) return false;
+  if(category==='kilobar'){ beli = normKilobar(beli); jual = (jual===null||jual===undefined) ? null : normKilobar(jual); }
+  const ref = doc(db,'prices',date);
+  const snap = await getDoc(ref);
+  const data = snap.exists() ? snap.data() : {};
+  const arr = Array.isArray(data[category]) ? [...data[category]] : [];
+  const idx = arr.findIndex(e=>e.company===company);
+  const entry = {company, beli, jual: (jual===undefined?null:jual), updatedAt: new Date().toISOString()};
+  if(idx>=0) arr[idx]=entry; else arr.push(entry);
+  await setDoc(ref, {...data, [category]:arr}, {merge:true});
+  return true;
+}
+
+async function deleteEntry(date, category, company){
+  if(!(await ensureEditAccess())) return false;
+  const ref = doc(db,'prices',date);
+  const snap = await getDoc(ref);
+  if(!snap.exists()) return false;
+  const data = snap.data();
+  const arr = (data[category]||[]).filter(e=>e.company!==company);
+  await setDoc(ref, {...data, [category]:arr}, {merge:true});
+  return true;
+}
+
+async function bulkUpsert(entriesByDate){
+  // entriesByDate: Map<date, Array<{category, company, beli, jual}>>
+  if(!(await ensureEditAccess())) return {added:0, ok:false};
+  let added = 0;
+  for(const [date, entries] of entriesByDate){
+    const ref = doc(db,'prices',date);
+    const snap = await getDoc(ref);
+    const data = snap.exists() ? snap.data() : {};
+    const byCat = {rekening:[...(data.rekening||[])], fisik:[...(data.fisik||[])], kilobar:[...(data.kilobar||[])]};
+    entries.forEach(e=>{
+      const arr = byCat[e.category];
+      const idx = arr.findIndex(x=>x.company===e.company);
+      let beli = e.beli, jual = (e.jual===undefined?null:e.jual);
+      if(e.category==='kilobar'){ beli = normKilobar(beli); jual = jual==null ? null : normKilobar(jual); }
+      const entry = {company:e.company, beli, jual, updatedAt: new Date().toISOString()};
+      if(idx>=0) arr[idx]=entry; else arr.push(entry);
+      added++;
+    });
+    await setDoc(ref, {...data, ...byCat}, {merge:true});
+  }
+  return {added, ok:true};
+}
+
+function renderAuthWidget(){
+  const el = document.getElementById('authWidget');
+  if(!el) return;
+  if(isEditMode){
+    el.innerHTML = `<button class="auth-pill unlocked" id="btnAuthToggle">🔓 Mode Edit aktif — Keluar</button>`;
+  } else {
+    el.innerHTML = `<button class="auth-pill locked" id="btnAuthToggle">🔒 Mode Lihat — Masuk untuk Edit</button>`;
+  }
+  document.getElementById('btnAuthToggle').addEventListener('click', async ()=>{
+    if(isEditMode){ await signOut(auth); showToast('Keluar dari mode edit.'); }
+    else { const ok = await ensureEditAccess(); if(ok) showToast('Mode edit aktif.'); }
+  });
+}
+function liveBadgeHtml(){
+  if(loadError) return `<span class="live-badge" id="liveBadge" style="background:var(--red-pale); color:var(--red);">⚠ Gagal sinkron</span>`;
+  if(!dataLoaded) return `<span class="live-badge" id="liveBadge" style="background:var(--amber-pale); color:var(--amber);">⏳ Memuat...</span>`;
+  const t = lastSyncAt ? lastSyncAt.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '—';
+  return `<span class="live-badge" id="liveBadge"><span class="live-dot"></span>Live • ${t}</span>`;
+}
+
+function showToast(msg){
+
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+/* ---------- Animasi: count-up angka KPI ---------- */
+function prefersReducedMotion(){
+  return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+function animateCountUp(el){
+  const target = parseFloat(el.dataset.target);
+  if(isNaN(target)) return;
+  const template = el.dataset.template || '{v}';
+  const decimals = parseInt(el.dataset.decimals||'0', 10);
+  const fmtN = v => decimals>0
+    ? v.toLocaleString('id-ID',{minimumFractionDigits:decimals,maximumFractionDigits:decimals})
+    : Math.round(v).toLocaleString('id-ID');
+  if(prefersReducedMotion()){ el.textContent = template.replace('{v}', fmtN(target)); return; }
+  const duration = 700;
+  const start = performance.now();
+  function tick(now){
+    const t = Math.min(1, (now-start)/duration);
+    const eased = 1-Math.pow(1-t,3); // ease-out cubic
+    el.textContent = template.replace('{v}', fmtN(target*eased));
+    if(t<1) requestAnimationFrame(tick);
+    else el.textContent = template.replace('{v}', fmtN(target));
+  }
+  requestAnimationFrame(tick);
+}
+function initCountUps(container){
+  container.querySelectorAll('.count-up').forEach(el=>animateCountUp(el));
+}
+
+/* ---------- Ripple klik (delegasi event, jalan otomatis walau tombolnya dibangun ulang tiap render) ---------- */
+const RIPPLE_SELECTOR = '.btn, .btn-ghost, .btn-danger, .btn-stale-ack, .tabbar button, button.stale-badge, .navbtn';
+function initRippleEffect(){
+  document.addEventListener('click', e=>{
+    if(prefersReducedMotion()) return;
+    const el = e.target.closest(RIPPLE_SELECTOR);
+    if(!el || el.disabled) return;
+    const rect = el.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height) * 1.6;
+    const ripple = document.createElement('span');
+    ripple.className = 'ripple-effect';
+    ripple.style.width = ripple.style.height = size+'px';
+    ripple.style.left = (e.clientX - rect.left - size/2)+'px';
+    ripple.style.top = (e.clientY - rect.top - size/2)+'px';
+    el.appendChild(ripple);
+    ripple.addEventListener('animationend', ()=>ripple.remove());
+  });
+}
+
+/* ---------- Tooltip custom (fade+scale), pakai atribut data-tip menggantikan title bawaan browser ---------- */
+function initCustomTooltips(){
+  let tt = document.getElementById('customTooltip');
+  if(!tt){
+    tt = document.createElement('div');
+    tt.id = 'customTooltip';
+    tt.className = 'custom-tooltip';
+    document.body.appendChild(tt);
+  }
+  let currentEl = null;
+  document.addEventListener('mouseover', e=>{
+    const el = e.target.closest('[data-tip]');
+    if(!el || el===currentEl) return;
+    currentEl = el;
+    tt.textContent = el.dataset.tip;
+    tt.classList.add('show');
+  });
+  document.addEventListener('mousemove', e=>{
+    if(!currentEl) return;
+    let left = e.clientX+14, top = e.clientY+16;
+    tt.style.left = left+'px'; tt.style.top = top+'px';
+    requestAnimationFrame(()=>{
+      const tw = tt.offsetWidth, th = tt.offsetHeight;
+      if(left+tw > window.innerWidth-8) tt.style.left = (e.clientX-tw-14)+'px';
+      if(top+th > window.innerHeight-8) tt.style.top = (e.clientY-th-16)+'px';
+    });
+  });
+  document.addEventListener('mouseout', e=>{
+    if(!currentEl) return;
+    if(e.target.closest('[data-tip]')===currentEl && !currentEl.contains(e.relatedTarget)){
+      currentEl = null;
+      tt.classList.remove('show');
+    }
+  });
+}
+
+/* =====================================================================
+   HELPERS
+   ===================================================================== */
+const fmt = n => n===null||n===undefined||isNaN(n) ? '—' : Math.round(n).toLocaleString('id-ID');
+const fmtJuta = n => n===null||n===undefined||isNaN(n) ? '—' : (n/1000000).toLocaleString('id-ID',{minimumFractionDigits:2,maximumFractionDigits:2})+' Jt';
+// Parser input harga singkat, contoh: "2,358 M" -> 2358000000, "2.5 Jt" -> 2500000, "2358000000" -> 2358000000
+function parseShorthandPrice(str){
+  if(str===null||str===undefined) return null;
+  const s = String(str).trim();
+  if(s==='') return null;
+  const m = s.match(/^([\d.,]+)\s*(m|miliar|b|jt|juta|k|ribu)$/i);
+  if(m){
+    const raw = m[1];
+    const numPart = raw.includes(',') ? raw.replace(/\./g,'').replace(',', '.') : raw;
+    const num = parseFloat(numPart);
+    if(isNaN(num)) return null;
+    const suffix = m[2].toLowerCase();
+    let scale = 1;
+    if(suffix==='m'||suffix==='miliar'||suffix==='b') scale = 1e9;
+    else if(suffix==='jt'||suffix==='juta') scale = 1e6;
+    else if(suffix==='k'||suffix==='ribu') scale = 1e3;
+    return Math.round(num*scale);
+  }
+  const cleaned = s.replace(/[^0-9\-]/g,'');
+  if(cleaned===''||cleaned==='-') return null;
+  return parseInt(cleaned,10);
+}
+const fmtPct = n => n===null||n===undefined||isNaN(n) ? '—' : n.toFixed(2)+'%';
+function normKilobar(v){ if(v===null||v===undefined) return null; return v>10000000 ? v/1000 : v; }
+function effVal(rec){ return rec.category==='kilobar' ? normKilobar(rec.beli) : rec.beli; }
+function effJual(rec){ return rec.category==='kilobar' ? normKilobar(rec.jual) : rec.jual; }
+function spreadOf(rec){ const b=effVal(rec), j=effJual(rec); if(b==null||j==null) return null; return (b-j)/b*100; }
+function distinctDates(){ return [...new Set(RECORDS.map(r=>r.date))].sort(); }
+function latestDate(){ const d=distinctDates(); return d[d.length-1]; }
+function prevDate(){ const d=distinctDates(); return d.length>1 ? d[d.length-2] : null; }
+function fmtDateLabel(d){ if(!d) return '—'; const [y,m,day]=d.split('-'); const months=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des']; return `${day} ${months[parseInt(m)-1]} ${y}`; }
+function fmtDateLabelFull(d){ if(!d) return '—'; const [y,m,day]=d.split('-'); const months=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']; return `${day} ${months[parseInt(m)-1]} ${y}`; }
+
+/* ---------- Date picker: Tanggal / Bulan / Tahun terpisah ---------- */
+const MONTH_NAMES_ID = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+function buildDateIndex(dates){
+  const byYear = new Map();       // year -> Set(month strings)
+  const byYearMonth = new Map();  // 'YYYY-MM' -> [day strings]
+  dates.forEach(d=>{
+    const [y,m,day] = d.split('-');
+    if(!byYear.has(y)) byYear.set(y, new Set());
+    byYear.get(y).add(m);
+    const key = y+'-'+m;
+    if(!byYearMonth.has(key)) byYearMonth.set(key, []);
+    byYearMonth.get(key).push(day);
+  });
+  return {byYear, byYearMonth};
+}
+function datePickerHtml(prefix, dates, selectedDate){
+  if(dates.length===0) return `<span class="section-note">Belum ada data.</span>`;
+  const idx = buildDateIndex(dates);
+  const years = [...idx.byYear.keys()].sort().reverse();
+  let [selY, selM, selD] = (selectedDate && idx.byYear.has(selectedDate.split('-')[0]) ? selectedDate : dates[dates.length-1]).split('-');
+  if(!idx.byYear.has(selY)) selY = years[0];
+  const months = [...idx.byYear.get(selY)].sort().reverse();
+  if(!months.includes(selM)) selM = months[0];
+  const days = (idx.byYearMonth.get(selY+'-'+selM)||[]).slice().sort().reverse();
+  if(!days.includes(selD)) selD = days[0];
+  return `
+    <select id="${prefix}_day" class="datepart-sel">${days.map(d=>`<option value="${d}" ${d===selD?'selected':''}>${d}</option>`).join('')}</select>
+    <select id="${prefix}_month" class="datepart-sel">${months.map(m=>`<option value="${m}" ${m===selM?'selected':''}>${MONTH_NAMES_ID[parseInt(m)-1]}</option>`).join('')}</select>
+    <select id="${prefix}_year" class="datepart-sel">${years.map(y=>`<option value="${y}" ${y===selY?'selected':''}>${y}</option>`).join('')}</select>
+  `;
+}
+function wireDatePicker(prefix, dates, onChange){
+  if(dates.length===0) return;
+  const idx = buildDateIndex(dates);
+  const yearSel = document.getElementById(prefix+'_year');
+  const monthSel = document.getElementById(prefix+'_month');
+  const daySel = document.getElementById(prefix+'_day');
+  if(!yearSel||!monthSel||!daySel) return;
+  function current(){ return `${yearSel.value}-${monthSel.value}-${daySel.value}`; }
+  function rebuildMonths(){
+    const months = [...idx.byYear.get(yearSel.value)].sort().reverse();
+    monthSel.innerHTML = months.map(m=>`<option value="${m}">${MONTH_NAMES_ID[parseInt(m)-1]}</option>`).join('');
+  }
+  function rebuildDays(){
+    const days = (idx.byYearMonth.get(yearSel.value+'-'+monthSel.value)||[]).slice().sort().reverse();
+    daySel.innerHTML = days.map(d=>`<option value="${d}">${d}</option>`).join('');
+  }
+  yearSel.addEventListener('change', ()=>{ rebuildMonths(); rebuildDays(); onChange(current()); });
+  monthSel.addEventListener('change', ()=>{ rebuildDays(); onChange(current()); });
+  daySel.addEventListener('change', ()=>{ onChange(current()); });
+}
+function byCategoryDate(cat,date){ return RECORDS.filter(r=>r.category===cat && r.date===date); }
+function rankedByCategory(cat,date){
+  const rows = byCategoryDate(cat,date).filter(r=>r.beli!=null).map(r=>({...r, eff:effVal(r), spread:spreadOf(r)}));
+  rows.sort((a,b)=>a.eff-b.eff);
+  rows.forEach((r,i)=>r.rank=i+1);
+  return rows;
+}
+// Deteksi harga stagnan: Harga Beli tidak berubah sama sekali selama N tanggal input terakhir yang tersedia
+// untuk kombinasi (kategori, perusahaan) tsb — indikasi kemungkinan scraping/sumber data perlu dicek ulang.
+function detectStalePrices(days=3){
+  const idx = new Map();
+  RECORDS.forEach(r=>{ idx.set(r.category+'|'+r.date+'|'+r.company, r); });
+  const results = [];
+  Object.entries(CATEGORY_META).forEach(([cat, meta])=>{
+    meta.companies.forEach(company=>{
+      const companyDates = [...new Set(RECORDS.filter(r=>r.category===cat && r.company===company && r.beli!=null).map(r=>r.date))].sort();
+      if(companyDates.length < days) return;
+      const lastN = companyDates.slice(-days);
+      const recs = lastN.map(d=>idx.get(cat+'|'+d+'|'+company));
+      if(recs.some(r=>!r || r.beli==null)) return;
+
+      const beliVals = recs.map(r=>effVal(r));
+      const beliStale = beliVals.every(v=>v===beliVals[0]);
+
+      // Harga Jual: hanya dicek kalau SEMUA nilainya terisi di N hari terakhir — kalau ada yang kosong, dikecualikan (bukan dianggap stagnan)
+      const jualVals = recs.map(r=>effJual(r));
+      const jualStale = jualVals.every(v=>v!=null) && jualVals.every(v=>v===jualVals[0]);
+
+      if(beliStale || jualStale){
+        const windowEndDate = lastN[lastN.length-1];
+        if(STALE_ACKS.has(staleAckKey(cat, company, windowEndDate))) return;
+        results.push({category:cat, company, dates:lastN, beliStale, jualStale, beliValue:beliVals[0], jualValue:jualVals[0], ackDate:windowEndDate});
+      }
+    });
+  });
+  return results;
+}
+function isBSI(company){ return /BSI/i.test(company); }
+// Lotus Archi & Mulia Gold: kalau data hari itu di-input/upload ke database sebelum jam 12:00 WIB pada HARI YANG SAMA
+// dengan tanggal datanya, tandai — kemungkinan itu masih carry-over harga kemarin sebelum update resmi masuk.
+function isLateUpdateCompany(company){ const up=company.toUpperCase(); return up.includes('LOTUS')||up.includes('MULIA'); }
+function toJakartaParts(isoString){
+  const d = new Date(isoString);
+  if(isNaN(d.getTime())) return null;
+  const fmt = new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Jakarta', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', hour12:false});
+  const map = {};
+  fmt.formatToParts(d).forEach(p=>{ map[p.type]=p.value; });
+  let hour = parseInt(map.hour,10);
+  if(hour===24) hour = 0;
+  return {dateStr:`${map.year}-${map.month}-${map.day}`, hour};
+}
+function lateUpdateBadge(record){
+  if(!record || !isLateUpdateCompany(record.company) || !record.updatedAt) return '';
+  const parts = toJakartaParts(record.updatedAt);
+  if(!parts) return '';
+  if(parts.dateStr===record.date && parts.hour<12){
+    return ` <span class="tag" style="background:var(--amber-pale); color:var(--amber);" data-tip="Data ini di-input sebelum jam 12:00 WIB pada hari yang sama — kemungkinan masih harga carry-over dari kemarin">⏰ Harga Kemarin</span>`;
+  }
+  return '';
+}
+
+/* =====================================================================
+   NAVIGATION
+   ===================================================================== */
+const TABS = [
+  {id:'overview', label:'Executive Overview'},
+  {id:'ranking', label:'Daily Price Ranking'},
+  {id:'trend', label:'Trend Harga Harian'},
+  {id:'spread', label:'Spread Beli-Jual (%)'},
+  {id:'movement', label:'Price Movement Comparison'},
+  {id:'report', label:'Laporan Harian'},
+  {id:'input', label:'Data Input Harian'}
+];
+let activeTab = 'overview';
+let rankingCat = 'kilobar';
+let rankingBenchmark = 'xau';
+let reportDate = null;
+let reportBenchmark = 'xau';
+let rankingDate = null;
+let heatmapDate = null;
+let trendMetric = 'beli';
+let trendDateFrom = null;
+let trendDateTo = null;
+let spreadDate = null;
+let movementDateA = null;
+let movementDateB = null;
+const PALETTE = ['#2E5378','#3E6B4F','#A9812F','#A2432B','#6B5B95','#4E8098','#8C6239','#C08A2E','#5C4B8A','#7A6A53'];
+const CATEGORY_ORDER = ['rekening','fisik','kilobar'];
+
+function renderNav(){
+  const nav = document.getElementById('navbar');
+  nav.innerHTML = TABS.map((t,i)=>`
+    <button class="navbtn ${activeTab===t.id?'active':''}" data-tab="${t.id}">
+      <span class="n">${String(i+1).padStart(2,'0')}</span>${t.label}
+    </button>`).join('');
+  nav.querySelectorAll('.navbtn').forEach(b=>b.addEventListener('click', ()=>{ activeTab=b.dataset.tab; renderAll(); }));
+  updateNavIndicator();
+}
+function updateNavIndicator(){
+  const indicator = document.getElementById('navIndicator');
+  const activeBtn = document.querySelector('.navbtn.active');
+  if(!indicator || !activeBtn || window.innerWidth<=860){ if(indicator) indicator.style.opacity='0'; return; }
+  indicator.style.opacity = '1';
+  indicator.style.top = activeBtn.offsetTop+'px';
+  indicator.style.height = activeBtn.offsetHeight+'px';
+}
+window.addEventListener('resize', ()=>updateNavIndicator());
+
+/* =====================================================================
+   MAIN RENDER DISPATCH
+   ===================================================================== */
+function renderAll(){
+  renderNav();
+  if(activeTab!=='trend'){
+    const tt = document.getElementById('chartTooltip');
+    if(tt) tt.style.display = 'none';
+  }
+  const main = document.getElementById('main');
+  const ld = latestDate();
+  if(!rankingDate) rankingDate = ld;
+  if(!heatmapDate) heatmapDate = ld;
+  if(!spreadDate) spreadDate = ld;
+  let html = `<div class="ribbon"></div>
+  <div class="topbar">
+    <div>
+      <div class="pagetitle">${TABS.find(t=>t.id===activeTab).label}</div>
+      <div class="pagesub-row">
+        ${liveBadgeHtml()}
+        <span class="datebadge">Update terakhir: ${ld?fmtDateLabel(ld):'—'}</span>
+      </div>
+    </div>
+  </div>`;
+  main.innerHTML = html;
+  const body = document.createElement('div');
+  body.className = 'tab-fade-in';
+  main.appendChild(body);
+
+  if(loadError){
+    body.innerHTML = `<div class="card" style="border-color:var(--red); text-align:center; padding:40px;">
+      <div style="font-weight:700; color:var(--red); margin-bottom:8px;">⚠ Gagal tersambung ke database</div>
+      <div class="section-note">${loadError}</div>
+      <div class="flag" style="margin-top:10px;">Cek koneksi internet, atau pastikan Firestore &amp; Security Rules sudah aktif dengan benar.</div>
+    </div>`;
+    return;
+  }
+  if(!dataLoaded){
+    body.innerHTML = `
+    <div class="grid kpi-grid" style="margin-bottom:16px;">
+      ${Array.from({length:6}).map(()=>`<div class="card kpi">
+        <div class="skeleton" style="width:70%; height:11px;"></div>
+        <div class="skeleton" style="width:90%; height:19px; margin-top:4px;"></div>
+        <div class="skeleton" style="width:50%; height:11px; margin-top:4px;"></div>
+      </div>`).join('')}
+    </div>
+    <div class="card">
+      ${Array.from({length:5}).map(()=>`<div class="skeleton-row">
+        <div class="skeleton" style="width:34px; height:14px;"></div>
+        <div class="skeleton" style="width:38%; height:14px;"></div>
+        <div class="skeleton" style="width:18%; height:14px; margin-left:auto;"></div>
+        <div class="skeleton" style="width:18%; height:14px;"></div>
+      </div>`).join('')}
+    </div>`;
+    return;
+  }
+
+  if(activeTab==='overview') renderOverview(body);
+  else if(activeTab==='ranking') renderRanking(body);
+  else if(activeTab==='trend') renderTrend(body);
+  else if(activeTab==='spread') renderSpread(body);
+  else if(activeTab==='movement') renderMovement(body);
+  else if(activeTab==='report') renderReport(body);
+  else if(activeTab==='input') renderInput(body);
+}
+
+/* =====================================================================
+   1. EXECUTIVE OVERVIEW
+   ===================================================================== */
+function renderOverview(body){
+  const ld = latestDate(), pd = prevDate();
+  const kilo = rankedByCategory('kilobar', ld);
+  const fisik = rankedByCategory('fisik', ld);
+  const rekening = rankedByCategory('rekening', ld);
+  const cheapestKilo = kilo[0], cheapestFisik = fisik[0], cheapestRek = rekening[0];
+  const bsiKilo = kilo.find(r=>isBSI(r.company));
+  const selisihBsi = bsiKilo && cheapestKilo ? bsiKilo.eff - cheapestKilo.eff : null;
+  const locoLondon = kilo.find(r=>r.company==='Loco London')?.eff ?? null;
+  const spotXAU = kilo.find(r=>r.company==='XAU')?.eff ?? null;
+  function vsLoco(eff){
+    if(eff==null || locoLondon==null) return '';
+    const pct = (eff-locoLondon)/locoLondon*100;
+    return `<div class="kpi-sub" style="margin-top:2px;">vs Loco London (LBMA): <b style="color:${pct>=0?'var(--red)':'var(--green)'};">${pct>=0?'+':''}${fmtPct(pct)}</b></div>`;
+  }
+  function vsSpot(eff){
+    if(eff==null || spotXAU==null) return '';
+    const pct = (eff-spotXAU)/spotXAU*100;
+    return `<div class="kpi-sub" style="margin-top:2px;">vs Spot (XAU): <b style="color:${pct>=0?'var(--red)':'var(--green)'};">${pct>=0?'+':''}${fmtPct(pct)}</b></div>`;
+  }
+  function countSpan(target, template, decimals=0, fallback='—'){
+    if(target==null || isNaN(target)) return fallback;
+    return `<span class="count-up" data-target="${target}" data-template="${template.replace(/"/g,'&quot;')}" data-decimals="${decimals}">${template.replace('{v}','0')}</span>`;
+  }
+
+  // perubahan harga hari ini = BSI kilobar vs previous date
+  let perubahan = null, perubahanPct = null;
+  if(pd && bsiKilo){
+    const prevRow = byCategoryDate('kilobar', pd).find(r=>r.company===bsiKilo.company);
+    if(prevRow && prevRow.beli!=null){
+      const prevEff = normKilobar(prevRow.beli);
+      perubahan = bsiKilo.eff - prevEff;
+      perubahanPct = perubahan/prevEff*100;
+    }
+  }
+
+  // best spread across all categories on latest date
+  const allLatest = ['rekening','fisik','kilobar'].flatMap(c=>rankedByCategory(c,ld));
+  const withSpread = allLatest.filter(r=>r.spread!=null && r.spread>0);
+  withSpread.sort((a,b)=>a.spread-b.spread);
+  const bestSpread = withSpread[0];
+
+  const staleList = detectStalePrices(3);
+  const staleBannerHtml = staleList.length===0 ? '' : `
+  <div class="stale-banner">
+    <div class="stale-banner-title">⚠️ ${staleList.length} Harga Tidak Berubah Selama 3 Hari Input Terakhir</div>
+    <div style="font-size:12px; color:var(--muted); margin-bottom:10px;">Kemungkinan sumber data/scraping perlu dicek ulang. Kalau sudah dicek dan memang harganya masih sesuai hari ini, klik "Sudah Dicek" supaya tidak muncul lagi:</div>
+    <div class="stale-list">${staleList.map(s=>{
+      let desc;
+      if(s.beliStale && s.jualStale) desc = `Harga Beli &amp; Jual tidak berubah — tetap Rp ${fmt(s.beliValue)} / Rp ${fmt(s.jualValue)}`;
+      else if(s.beliStale) desc = `Harga Beli tidak berubah — tetap Rp ${fmt(s.beliValue)}`;
+      else desc = `Harga Jual tidak berubah — tetap Rp ${fmt(s.jualValue)}`;
+      return `<div class="stale-item">
+        <div class="stale-item-text"><b>${s.company}</b> (${CATEGORY_META[s.category].label}) — ${desc} sejak ${fmtDateLabel(s.dates[0])}</div>
+        <button type="button" class="btn-stale-ack" data-cat="${s.category}" data-company="${s.company}" data-ackdate="${s.ackDate}">✓ Sudah Dicek</button>
+      </div>`;
+    }).join('')}</div>
+  </div>`;
+
+  body.innerHTML = `
+  ${staleBannerHtml}
+  <div class="grid kpi-grid">
+    <div class="card kpi"><div class="kpi-label">🏆 Supplier Kilobar Termurah</div>
+      <div class="kpi-value">${cheapestKilo?cheapestKilo.company:'—'}</div>
+      <div class="kpi-sub">${countSpan(cheapestKilo?.eff, 'Rp {v} /gr')}</div>
+      ${vsLoco(cheapestKilo?.eff)}
+      ${vsSpot(cheapestKilo?.eff)}</div>
+    <div class="card kpi"><div class="kpi-label">🏆 Supplier Fisik 1gr Termurah</div>
+      <div class="kpi-value">${cheapestFisik?cheapestFisik.company:'—'}</div>
+      <div class="kpi-sub">${countSpan(cheapestFisik?.eff, 'Rp {v} /gr')}</div>
+      ${vsLoco(cheapestFisik?.eff)}
+      ${vsSpot(cheapestFisik?.eff)}</div>
+    <div class="card kpi"><div class="kpi-label">🏆 Supplier Rekening Emas Termurah</div>
+      <div class="kpi-value">${cheapestRek?cheapestRek.company:'—'}</div>
+      <div class="kpi-sub">${countSpan(cheapestRek?.eff, 'Rp {v} /gr')}</div>
+      ${vsLoco(cheapestRek?.eff)}
+      ${vsSpot(cheapestRek?.eff)}</div>
+    <div class="card kpi"><div class="kpi-label">💰 Selisih BSI vs Termurah (Kilobar)</div>
+      <div class="kpi-value big">${countSpan(selisihBsi, 'Rp {v} /gr')}</div>
+      <div class="kpi-sub">${selisihBsi==null?'Data BSI kilobar tidak tersedia':'BSI lebih mahal dari '+ (cheapestKilo?cheapestKilo.company:'-')}</div></div>
+    <div class="card kpi"><div class="kpi-label">📈 Perubahan Harga BSI Kilobar (vs ${fmtDateLabel(pd)})</div>
+      <div class="kpi-value big ${perubahan>0?'neg':perubahan<0?'pos':''}">${countSpan(perubahan==null?null:Math.abs(perubahan), (perubahan>0?'▲ +':'▼ ')+'Rp {v}')}</div>
+      <div class="kpi-sub ${perubahanPct>0?'neg':perubahanPct<0?'pos':''}">${perubahanPct==null?'Belum ada data pembanding':fmtPct(perubahanPct)+' hari ini'}</div></div>
+    <div class="card kpi"><div class="kpi-label">📊 Spread Terbaik (Semua Kategori)</div>
+      <div class="kpi-value">${bestSpread?bestSpread.company:'—'}</div>
+      <div class="kpi-sub pos">${countSpan(bestSpread?.spread, '{v}%', 2)}</div></div>
+  </div>
+
+  <div class="section-title">Ringkasan Kategori — ${fmtDateLabel(ld)}</div>
+  <div class="grid cat-summary-grid">
+    ${['kilobar','fisik','rekening'].map(cat=>{
+      const rows = rankedByCategory(cat, ld);
+      return `<div class="card">
+        <div style="font-weight:600; font-size:13px; margin-bottom:8px;">${CATEGORY_META[cat].label}</div>
+        <div style="font-size:11.5px; color:var(--muted); margin-bottom:10px;">${rows.length} supplier terpantau</div>
+        <table><tbody>
+        ${rows.slice(0,3).map(r=>`<tr><td style="padding:4px 0; border:none;">${r.rank}. ${r.company}</td>
+          <td class="num-cell" style="padding:4px 0; border:none;">Rp ${fmt(r.eff)}</td></tr>`).join('')}
+        </tbody></table>
+        <div class="flag" style="margin-top:10px;">*Catatan: menampilkan 3 harga termurah dari kategori ini.</div>
+      </div>`;
+    }).join('')}
+  </div>
+  `;
+  body.querySelectorAll('.btn-stale-ack').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      btn.disabled = true; btn.textContent = 'Menyimpan...';
+      const ok = await acknowledgeStale(btn.dataset.cat, btn.dataset.company, btn.dataset.ackdate);
+      if(ok){ showToast('Dikonfirmasi — alert untuk supplier ini disembunyikan.'); renderAll(); }
+      else { btn.disabled = false; btn.textContent = '✓ Sudah Dicek'; }
+    });
+  });
+  initCountUps(body);
+}
+
+/* =====================================================================
+   2. DAILY PRICE RANKING
+   ===================================================================== */
+function renderRanking(body){
+  const dates = distinctDates();
+  const rows = rankedByCategory(rankingCat, rankingDate);
+  const n = rows.length;
+  const kiloRows = rankedByCategory('kilobar', rankingDate);
+  const spotXAU = kiloRows.find(x=>x.company==='XAU')?.eff ?? null;
+  const locoLondon = kiloRows.find(x=>x.company==='Loco London')?.eff ?? null;
+  if(!rankingBenchmark) rankingBenchmark = 'xau';
+  const benchmarkVal = rankingBenchmark==='xau' ? spotXAU : locoLondon;
+  const benchmarkName = rankingBenchmark==='xau' ? 'XAU' : 'Loco London';
+  const benchmarkLabel = rankingBenchmark==='xau' ? 'vs Spot (XAU)' : 'vs Loco London (LBMA)';
+  const staleList = detectStalePrices(3);
+  function staleBadge(company){
+    const hit = staleList.find(s=>s.category===rankingCat && s.company===company);
+    if(!hit) return '';
+    const which = hit.beliStale && hit.jualStale ? 'Harga Beli & Jual' : hit.beliStale ? 'Harga Beli' : 'Harga Jual';
+    return ` <button type="button" class="stale-badge btn-stale-ack" data-cat="${hit.category}" data-company="${hit.company}" data-ackdate="${hit.ackDate}" data-tip="${which} tidak berubah sejak ${fmtDateLabel(hit.dates[0])} (${hit.dates.length} hari input terakhir) — klik untuk konfirmasi kalau sudah dicek dan memang sesuai.">⚠</button>`;
+  }
+  body.innerHTML = `
+  <div class="tabbar" id="catTabs">
+    ${Object.keys(CATEGORY_META).map(c=>`<button data-cat="${c}" class="${rankingCat===c?'active':''}">${CATEGORY_META[c].label}</button>`).join('')}
+  </div>
+  <div style="margin-bottom:14px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+    <label style="margin:0;">Tanggal:</label>
+    <div class="datepart-group">${datePickerHtml('rank', dates, rankingDate)}</div>
+  </div>
+  <div style="margin-bottom:14px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+    <label style="margin:0;">Bandingkan dengan:</label>
+    <div class="tabbar" id="benchTabs" style="margin-bottom:0;">
+      <button data-bench="xau" class="${rankingBenchmark==='xau'?'active':''}">vs Spot (XAU)</button>
+      <button data-bench="loco" class="${rankingBenchmark==='loco'?'active':''}">vs Loco London (LBMA)</button>
+    </div>
+  </div>
+  <div class="legend">
+    <span><span class="dot" style="background:var(--green-pale); border:1px solid var(--green);"></span>Termurah</span>
+    <span><span class="dot" style="background:var(--gold-pale); border:1px solid var(--gold);"></span>Runner Up</span>
+    <span><span class="dot" style="background:var(--red-pale); border:1px solid var(--red);"></span>Termahal</span>
+    <span><span class="dot" style="background:var(--blue-pale); border:1px solid var(--blue);"></span>BSI</span>
+  </div>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>No</th><th>Perusahaan</th><th style="text-align:right;">Harga Beli</th><th style="text-align:right;">Harga Jual</th><th style="text-align:right;">Spread</th><th style="text-align:right;">${benchmarkLabel}</th><th>Ranking</th></tr></thead>
+    <tbody>
+    ${n===0?`<tr><td colspan="7" class="empty">Tidak ada data untuk kategori/tanggal ini.</td></tr>`:
+      rows.map(r=>{
+        let cls = '';
+        if(r.rank===1) cls='row-rank1'; else if(r.rank===2) cls='row-rank2'; else if(r.rank===n && n>2) cls='row-rankLast';
+        const bsiCls = isBSI(r.company)?'row-bsi':'';
+        const changeKey = r.category+'|'+r.date+'|'+r.company;
+        const changedAt = RECENT_CHANGES.get(changeKey);
+        const flashCls = (changedAt && Date.now()-changedAt<3000) ? 'flash-update' : '';
+        let benchCell;
+        if(r.company===benchmarkName){
+          benchCell = `<td class="num-cell"><span class="section-note">Acuan ${benchmarkName}</span></td>`;
+        } else if(benchmarkVal!=null){
+          const premPct = (r.eff-benchmarkVal)/benchmarkVal*100;
+          const premRp = r.eff-benchmarkVal;
+          benchCell = `<td class="num-cell" data-tip="Rp ${fmt(premRp)} vs ${benchmarkName}" style="color:${premPct>=0?'var(--red)':'var(--green)'};">${premPct>=0?'+':''}${fmtPct(premPct)}</td>`;
+        } else {
+          benchCell = `<td class="num-cell">—</td>`;
+        }
+        return `<tr class="${cls} ${bsiCls} ${flashCls}">
+          <td>${r.rank}</td><td>${r.company}${isBSI(r.company)?' <span class="tag tag-blue">BSI</span>':''}${lateUpdateBadge(r)}${staleBadge(r.company)}</td>
+          <td class="num-cell">Rp ${fmt(r.eff)}</td>
+          <td class="num-cell">Rp ${fmt(effJual(r))}</td>
+          <td class="num-cell">${fmtPct(r.spread)}</td>
+          ${benchCell}
+          <td>${r.rank===1?'<span class="tag tag-green">🟢 Termurah</span>':r.rank===2?'<span class="tag tag-amber">🟡 Runner Up</span>':(r.rank===n&&n>2)?'<span class="tag tag-red">🔴 Termahal</span>':'#'+r.rank}</td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table>
+  </div>
+  <div class="flag">Kolom "${benchmarkLabel}" membandingkan Harga Beli tiap produk terhadap harga acuan ${benchmarkName} (kategori Kilobar) pada tanggal yang sama — 🔴 di atas acuan, 🟢 di bawah acuan.${rankingCat==='kilobar'?' Nilai kilobar dinormalisasi ke harga per gram untuk perbandingan yang adil.':''}</div>
+  `;
+  body.querySelectorAll('#catTabs button').forEach(b=>b.addEventListener('click', ()=>{ rankingCat=b.dataset.cat; renderAll(); }));
+  body.querySelectorAll('#benchTabs button').forEach(b=>b.addEventListener('click', ()=>{ rankingBenchmark=b.dataset.bench; renderAll(); }));
+  wireDatePicker('rank', dates, d=>{ rankingDate=d; renderAll(); });
+  body.querySelectorAll('.btn-stale-ack').forEach(btn=>{
+    btn.addEventListener('click', async (e)=>{
+      e.stopPropagation();
+      if(!confirm(`Konfirmasi: harga ${btn.dataset.company} sudah dicek dan memang masih sesuai hari ini?`)) return;
+      const ok = await acknowledgeStale(btn.dataset.cat, btn.dataset.company, btn.dataset.ackdate);
+      if(ok){ showToast('Dikonfirmasi — alert untuk supplier ini disembunyikan.'); renderAll(); }
+    });
+  });
+}
+
+/* =====================================================================
+   3. TREND HARGA HARIAN  (dependency-free hand-built SVG line chart)
+   ===================================================================== */
+const TREND_HOVER_REGISTRY = {};
+function buildTrendSvg(dates, series, chartId){
+  const W=900, H=340, padL=68, padR=24, padT=18, padB=40;
+  const plotW = W-padL-padR, plotH = H-padT-padB;
+
+  const allVals = series.flatMap(s=>s.data.filter(v=>v!=null));
+  if(allVals.length===0){
+    return `<div class="empty">Belum ada data kilobar untuk ditampilkan.</div>`;
+  }
+  let vMin = Math.min(...allVals), vMax = Math.max(...allVals);
+  if(vMin===vMax){ vMin*=0.98; vMax*=1.02; }
+  const pad = (vMax-vMin)*0.12;
+  vMin -= pad; vMax += pad;
+
+  const xStep = dates.length>1 ? plotW/(dates.length-1) : 0;
+  const xAt = i => padL + (dates.length>1 ? i*xStep : plotW/2);
+  const yAt = v => padT + plotH - ( (v-vMin)/(vMax-vMin) )*plotH;
+
+  TREND_HOVER_REGISTRY[chartId] = {dates, series, padL, xStep};
+
+  const gridCount = 5;
+  let gridlines = '';
+  let yLabels = '';
+  for(let g=0; g<=gridCount; g++){
+    const v = vMin + (vMax-vMin)*g/gridCount;
+    const y = yAt(v);
+    gridlines += `<line class="gridline" x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}"></line>`;
+    yLabels += `<text class="axis-label" x="${padL-8}" y="${y+4}" text-anchor="end">Rp ${(v/1000000).toFixed(2)}jt</text>`;
+  }
+  let xLabels = '';
+  const labelStep = Math.max(1, Math.ceil(dates.length/11));
+  dates.forEach((d,i)=>{
+    if(i%labelStep===0 || i===dates.length-1){
+      xLabels += `<text class="axis-label" x="${xAt(i)}" y="${H-padB+18}" text-anchor="middle">${fmtDateLabel(d)}</text>`;
+    }
+  });
+
+  let lines = '';
+  // BSI digambar paling akhir (di atas garis lain) supaya selalu terlihat jelas
+  const orderedSeries = [...series.filter(s=>!isBSI(s.label)), ...series.filter(s=>isBSI(s.label))];
+  orderedSeries.forEach(s=>{
+    const bsiHighlight = isBSI(s.label);
+    const pts = s.data.map((v,i)=> v==null ? null : [xAt(i), yAt(v)]);
+    // line path (allows gaps for nulls)
+    let d='', drawing=false;
+    pts.forEach(p=>{
+      if(p==null){ drawing=false; return; }
+      d += (drawing?' L ':' M ')+p[0].toFixed(1)+' '+p[1].toFixed(1);
+      drawing = true;
+    });
+    if(bsiHighlight){
+      // halo lembut di belakang garis BSI supaya menonjol dibanding garis lain
+      lines += `<path d="${d.trim()}" fill="none" stroke="${s.color}" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" opacity="0.22"></path>`;
+    }
+    lines += `<path class="series-line" d="${d.trim()}" stroke="${s.color}" style="stroke-width:${bsiHighlight?4.5:2.6};"></path>`;
+    if(dates.length<=45){
+      pts.forEach(p=>{
+        if(p==null) return;
+        const size = bsiHighlight?10:8;
+        lines += `<rect class="series-dot" x="${(p[0]-size/2).toFixed(1)}" y="${(p[1]-size/2).toFixed(1)}" width="${size}" height="${size}" fill="${s.color}" ${bsiHighlight?'stroke="#fff" stroke-width="2"':''}></rect>`;
+      });
+    }
+  });
+
+  return `<svg class="svgchart" data-chart-id="${chartId}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+    ${gridlines}${yLabels}${xLabels}${lines}
+    <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${H-padB}" stroke="#001489" stroke-width="1"></line>
+    <line x1="${padL}" y1="${H-padB}" x2="${W-padR}" y2="${H-padB}" stroke="#001489" stroke-width="1"></line>
+    <line id="${chartId}-guide" x1="${padL}" y1="${padT}" x2="${padL}" y2="${H-padB}" stroke="#3C3C3C" stroke-width="1" stroke-dasharray="4,3" opacity="0" pointer-events="none"></line>
+    <rect class="hover-capture" data-chart-id="${chartId}" x="${padL}" y="${padT}" width="${plotW}" height="${plotH}" fill="transparent"></rect>
+  </svg>`;
+}
+
+function attachTrendHover(chartId){
+  const entry = TREND_HOVER_REGISTRY[chartId];
+  if(!entry) return;
+  const svg = document.querySelector(`svg[data-chart-id="${chartId}"]`);
+  if(!svg) return;
+  const capture = svg.querySelector('.hover-capture');
+  const guide = document.getElementById(chartId+'-guide');
+  if(!capture || !guide) return;
+  let tooltip = document.getElementById('chartTooltip');
+  if(!tooltip){
+    tooltip = document.createElement('div');
+    tooltip.id = 'chartTooltip';
+    tooltip.className = 'chart-tooltip';
+    document.body.appendChild(tooltip);
+  }
+  const {dates, series, padL, xStep} = entry;
+
+  function idxFromEvent(evt){
+    const pt = svg.createSVGPoint();
+    pt.x = evt.clientX; pt.y = evt.clientY;
+    const loc = pt.matrixTransform(svg.getScreenCTM().inverse());
+    const rel = loc.x - padL;
+    let i = xStep>0 ? Math.round(rel/xStep) : 0;
+    return Math.max(0, Math.min(dates.length-1, i));
+  }
+  capture.addEventListener('mousemove', evt=>{
+    const i = idxFromEvent(evt);
+    const x = padL + (dates.length>1 ? i*xStep : 0);
+    guide.setAttribute('x1', x); guide.setAttribute('x2', x); guide.setAttribute('opacity','1');
+
+    const sorted = [...series].sort((a,b)=>(isBSI(b.label)?1:0)-(isBSI(a.label)?1:0));
+    const rowsHtml = sorted.filter(s=>s.data[i]!=null).map(s=>
+      `<div style="display:flex; align-items:center; gap:7px; ${isBSI(s.label)?'font-weight:700;':''} padding:2px 0;">
+        <span style="width:9px; height:9px; border-radius:2px; background:${s.color}; display:inline-block; flex:none;"></span>
+        <span style="flex:1; white-space:nowrap;">${s.label}</span>
+        <span style="font-family:'IBM Plex Mono',monospace; margin-left:12px;">Rp ${fmt(s.data[i])}</span>
+      </div>`).join('');
+    tooltip.innerHTML = `<div style="font-weight:700; margin-bottom:6px; font-family:'IBM Plex Mono',monospace; border-bottom:1px solid rgba(255,255,255,.25); padding-bottom:5px;">${fmtDateLabel(dates[i])}</div>${rowsHtml || '<div style="opacity:.75;">Tidak ada data</div>'}`;
+    tooltip.style.display = 'block';
+    const tw = tooltip.offsetWidth, th = tooltip.offsetHeight;
+    let left = evt.clientX + 16, top = evt.clientY + 16;
+    if(left+tw > window.innerWidth-8) left = evt.clientX - tw - 16;
+    if(top+th > window.innerHeight-8) top = evt.clientY - th - 16;
+    tooltip.style.left = left+'px';
+    tooltip.style.top = top+'px';
+  });
+  capture.addEventListener('mouseleave', ()=>{
+    guide.setAttribute('opacity','0');
+    tooltip.style.display = 'none';
+  });
+}
+
+function renderTrend(body){
+  const allDates = distinctDates();
+  if(!trendDateFrom || !allDates.includes(trendDateFrom)) trendDateFrom = allDates[Math.max(0, allDates.length-60)];
+  if(!trendDateTo || !allDates.includes(trendDateTo)) trendDateTo = allDates[allDates.length-1];
+  let dates = allDates.filter(d=> d>=trendDateFrom && d<=trendDateTo);
+  if(dates.length===0) dates = allDates; // pengaman kalau rentang tidak valid
+
+  const idx = new Map();
+  RECORDS.forEach(r=>{ idx.set(r.category+'|'+r.date+'|'+r.company, r); });
+
+  function seriesForCategory(cat){
+    let companies, colorOf, labelOf;
+    if(cat==='kilobar'){
+      companies = TREND_COMPANIES; // 5 supplier utama sesuai brief
+      colorOf = (c,i) => brandColor(c,i);
+      labelOf = c => KILOBAR_SHORT[c];
+    } else {
+      companies = CATEGORY_META[cat].companies;
+      colorOf = (c,i) => brandColor(c,i);
+      labelOf = c => c;
+    }
+    return companies.map((c,i)=>{
+      const data = dates.map(d=>{
+        const rec = idx.get(cat+'|'+d+'|'+c);
+        if(!rec) return null;
+        return trendMetric==='beli' ? effVal(rec) : effJual(rec);
+      });
+      return {label:labelOf(c), color:colorOf(c,i), data};
+    }).filter(s=>s.data.some(v=>v!=null));
+  }
+
+  const sections = CATEGORY_ORDER.map(cat=>{
+    const series = seriesForCategory(cat);
+    const chartId = 'trend-'+cat;
+    return `
+    <div class="section-title">${CATEGORY_META[cat].label}
+      <span class="section-note">${series.length} supplier ditampilkan</span>
+    </div>
+    <div class="card chart-card">
+      ${dates.length===0 || series.length===0 ? '<div class="empty">Belum ada data untuk kategori ini.</div>' : buildTrendSvg(dates, series, chartId)}
+      ${series.length ? `<div class="chart-legend">${[...series].sort((a,b)=>(isBSI(b.label)?1:0)-(isBSI(a.label)?1:0)).map(s=>`<span style="${isBSI(s.label)?'font-weight:700;':''}"><i style="background:${s.color}; ${isBSI(s.label)?'width:14px; height:14px; box-shadow:0 0 0 2px '+s.color+'33;':''}"></i>${s.label}</span>`).join('')}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  body.innerHTML = `
+  <div class="tabbar">
+    <button data-m="beli" class="${trendMetric==='beli'?'active':''}">Harga Beli</button>
+    <button data-m="jual" class="${trendMetric==='jual'?'active':''}">Harga Jual</button>
+  </div>
+  <div style="display:flex; align-items:flex-end; gap:14px; margin-bottom:18px; flex-wrap:wrap;">
+    <div><label>Dari Tanggal</label>
+      <div class="datepart-group">${datePickerHtml('trendFrom', allDates, trendDateFrom)}</div>
+    </div>
+    <div style="font-family:'IBM Plex Mono',monospace; color:var(--muted); padding-bottom:8px;">→</div>
+    <div><label>Sampai Tanggal</label>
+      <div class="datepart-group">${datePickerHtml('trendTo', allDates, trendDateTo)}</div>
+    </div>
+    <div class="section-note" style="padding-bottom:8px;">${dates.length} hari ditampilkan</div>
+  </div>
+  ${sections}
+  <div class="flag">Nilai kategori Fisik Kilobar dinormalisasi ke harga per gram agar sebanding antar supplier. Titik kosong berarti data belum diinput untuk tanggal tersebut.</div>
+  `;
+  body.querySelectorAll('.tabbar button[data-m]').forEach(b=>b.addEventListener('click', ()=>{ trendMetric=b.dataset.m; renderAll(); }));
+  wireDatePicker('trendFrom', allDates, d=>{ trendDateFrom=d; renderAll(); });
+  wireDatePicker('trendTo', allDates, d=>{ trendDateTo=d; renderAll(); });
+  CATEGORY_ORDER.forEach(cat=>attachTrendHover('trend-'+cat));
+}
+
+/* =====================================================================
+   3b. SPREAD BELI-JUAL (%) — per kategori
+   ===================================================================== */
+function spreadTier(pct){
+  if(pct<=3) return {emoji:'🟢', label:'Ketat', bg:'var(--green-pale)', fg:'var(--green)'};
+  if(pct<=6) return {emoji:'🟡', label:'Sedang', bg:'var(--amber-pale)', fg:'var(--amber)'};
+  return {emoji:'🔴', label:'Lebar', bg:'var(--red-pale)', fg:'var(--red)'};
+}
+function renderSpread(body){
+  const dates = distinctDates();
+
+  const sections = CATEGORY_ORDER.map(cat=>{
+    const rows = byCategoryDate(cat, spreadDate)
+      .filter(r=>r.beli!=null)
+      .map(r=>{
+        const beli = effVal(r), jual = effJual(r);
+        const spreadRp = (jual!=null) ? beli-jual : null;
+        const spreadPct = spreadOf(r);
+        return {...r, beli, jual, spreadRp, spreadPct};
+      });
+    rows.sort((a,b)=>{
+      if(a.spreadPct==null) return 1;
+      if(b.spreadPct==null) return -1;
+      return a.spreadPct-b.spreadPct;
+    });
+    const validPct = rows.filter(r=>r.spreadPct!=null).map(r=>r.spreadPct);
+    const avg = validPct.length ? validPct.reduce((a,b)=>a+b,0)/validPct.length : null;
+
+    return `
+    <div class="section-title">${CATEGORY_META[cat].label}
+      <span class="section-note">Rata-rata spread: ${avg==null?'—':fmtPct(avg)}</span>
+    </div>
+    <div class="table-wrap" style="margin-bottom:26px;">
+    <table>
+      <thead><tr><th>No</th><th>Perusahaan</th><th style="text-align:right;">Harga Beli</th><th style="text-align:right;">Harga Jual</th>
+        <th style="text-align:right;">Spread (Rp)</th><th style="text-align:right;">Spread (%)</th></tr></thead>
+      <tbody>
+      ${rows.length===0 ? `<tr><td colspan="6" class="empty">Tidak ada data untuk tanggal ini.</td></tr>` :
+        rows.map((r,i)=>{
+          const tier = r.spreadPct==null ? null : spreadTier(r.spreadPct);
+          return `<tr class="${isBSI(r.company)?'row-bsi':''}">
+            <td>${i+1}</td>
+            <td>${r.company}${isBSI(r.company)?' <span class="tag tag-blue">BSI</span>':''}${lateUpdateBadge(r)}</td>
+            <td class="num-cell">Rp ${fmt(r.beli)}</td>
+            <td class="num-cell">${r.jual==null?'—':'Rp '+fmt(r.jual)}</td>
+            <td class="num-cell">${r.spreadRp==null?'—':'Rp '+fmt(r.spreadRp)}</td>
+            <td class="num-cell" style="font-weight:700; ${tier?`background:${tier.bg}; color:${tier.fg};`:''}" data-tip="${tier?tier.emoji+' Spread '+tier.label:''}">${fmtPct(r.spreadPct)}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+    </div>`;
+  }).join('');
+
+  body.innerHTML = `
+  <div style="margin-bottom:14px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+    <label style="margin:0;">Tanggal:</label>
+    <div class="datepart-group">${datePickerHtml('spread', dates, spreadDate)}</div>
+  </div>
+  <div class="legend">
+    <span>🟢 Spread Ketat (≤3%)</span><span>🟡 Spread Sedang (3–6%)</span><span>🔴 Spread Lebar (&gt;6%)</span>
+  </div>
+  ${sections}
+  <div class="flag">Spread (%) = (Harga Beli − Harga Jual) ÷ Harga Beli × 100. Warna latar pada kolom Spread (%) menunjukkan status (lihat legenda). Nilai kategori Fisik Kilobar dinormalisasi per gram agar sebanding.</div>
+  `;
+  wireDatePicker('spread', dates, d=>{ spreadDate=d; renderAll(); });
+}
+
+/* =====================================================================
+   4. BSI VS MARKET (bullet-style comparison)
+   ===================================================================== */
+function renderBsiVsMarket(body){
+  const ld = latestDate();
+  const kilo = rankedByCategory('kilobar', ld);
+  const bsi = kilo.find(r=>isBSI(r.company));
+  const others = kilo.filter(r=>!isBSI(r.company) && r.jual!=null);
+  const bestMarket = others.length ? others.reduce((best,r)=> (effJual(r)>effJual(best)?r:best), others[0]) : null;
+
+  const bsiJual = bsi?effJual(bsi):null;
+  const marketJual = bestMarket?effJual(bestMarket):null;
+  const selisihRp = (bsiJual!=null && marketJual!=null) ? bsiJual - marketJual : null;
+  const selisihPct = (selisihRp!=null && marketJual) ? selisihRp/marketJual*100 : null;
+  const maxVal = Math.max(bsiJual||0, marketJual||0) * 1.08;
+
+  body.innerHTML = `
+  <div class="grid" style="grid-template-columns:1fr 1fr 1fr; margin-bottom:20px;">
+    <div class="card kpi"><div class="kpi-label">Harga Jual (Buyback) BSI</div><div class="kpi-value">Rp ${fmt(bsiJual)} /gr</div></div>
+    <div class="card kpi"><div class="kpi-label">Harga Jual Terbaik di Market</div><div class="kpi-value">${bestMarket?bestMarket.company:'—'}</div><div class="kpi-sub">Rp ${fmt(marketJual)} /gr</div></div>
+    <div class="card kpi"><div class="kpi-label">Selisih</div><div class="kpi-value big ${selisihRp<0?'neg':'pos'}">${selisihRp==null?'—':(selisihRp<0?'-':'+')+'Rp '+fmt(Math.abs(selisihRp))}</div><div class="kpi-sub ${selisihPct<0?'neg':'pos'}">${selisihPct==null?'':fmtPct(Math.abs(selisihPct))+(selisihPct<0?' di bawah market':' di atas market')}</div></div>
+  </div>
+  <div class="card chart-card">
+    <div class="bullet-row">
+      <div class="bullet-label">BSI</div>
+      <div class="bullet-track"><div class="bullet-fill bsi" style="width:${maxVal?(bsiJual/maxVal*100):0}%;"></div></div>
+      <div class="bullet-val">Rp ${fmt(bsiJual)}</div>
+    </div>
+    <div class="bullet-row">
+      <div class="bullet-label">${bestMarket?bestMarket.company:'Market Terbaik'}</div>
+      <div class="bullet-track"><div class="bullet-fill market" style="width:${maxVal?(marketJual/maxVal*100):0}%;"></div></div>
+      <div class="bullet-val">Rp ${fmt(marketJual)}</div>
+    </div>
+  </div>
+  <div class="flag">Perbandingan menggunakan Harga Jual (buyback) kategori Fisik Kilobar, dinormalisasi per gram, tanggal ${fmtDateLabel(ld)}.</div>
+  `;
+}
+
+/* =====================================================================
+   5. POTENSI SAVING ANALYSIS
+   ===================================================================== */
+function renderSaving(body){
+  const ld = latestDate();
+  const kilo = rankedByCategory('kilobar', ld);
+  const bsi = kilo.find(r=>isBSI(r.company));
+  const cheapest = kilo[0];
+  const volumes = [{label:'100 kg', grams:100000},{label:'500 kg', grams:500000},{label:'1 Ton', grams:1000000}];
+
+  const perGramSaving = (bsi && cheapest) ? (bsi.eff - cheapest.eff) : null;
+
+  body.innerHTML = `
+  <div class="section-note" style="margin-bottom:14px;">Saving dihitung sebagai selisih Harga Beli BSI dikurangi Harga Beli supplier termurah (${cheapest?cheapest.company:'—'}), dikalikan volume sourcing — kategori Fisik Kilobar, ${fmtDateLabel(ld)}.</div>
+  <div class="grid" style="grid-template-columns:repeat(3,1fr); margin-bottom:24px;">
+    ${volumes.map(v=>{
+      const total = perGramSaving!=null ? perGramSaving*v.grams : null;
+      return `<div class="card kpi">
+        <div class="kpi-label">Jika Pembelian ${v.label}</div>
+        <div class="kpi-value big ${total>0?'pos':total<0?'neg':''}">${total==null?'—':'Rp '+fmt(Math.abs(total))}</div>
+        <div class="kpi-sub">${total==null?'Data tidak lengkap':(total>=0?'Potensi saving vs BSI':'BSI lebih murah')} sourcing dari ${cheapest?cheapest.company:'-'}</div>
+      </div>`;
+    }).join('')}
+  </div>
+
+  <div class="section-title">Perbandingan Seluruh Supplier Kilobar vs Termurah</div>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Perusahaan</th><th style="text-align:right;">Harga Beli /gr</th><th style="text-align:right;">Selisih vs Termurah /gr</th>
+      <th style="text-align:right;">Saving 100kg</th><th style="text-align:right;">Saving 500kg</th><th style="text-align:right;">Saving 1 Ton</th></tr></thead>
+    <tbody>
+    ${kilo.map(r=>{
+      const diff = r.eff - cheapest.eff;
+      return `<tr class="${isBSI(r.company)?'row-bsi':''}">
+        <td>${r.company}${isBSI(r.company)?' <span class="tag tag-blue">BSI</span>':''}${r.rank===1?' <span class="tag tag-green">Termurah</span>':''}</td>
+        <td class="num-cell">Rp ${fmt(r.eff)}</td>
+        <td class="num-cell">${diff===0?'—':'Rp '+fmt(diff)}</td>
+        <td class="num-cell">${diff===0?'—':'Rp '+fmt(diff*100000)}</td>
+        <td class="num-cell">${diff===0?'—':'Rp '+fmt(diff*500000)}</td>
+        <td class="num-cell">${diff===0?'—':'Rp '+fmt(diff*1000000)}</td>
+      </tr>`;
+    }).join('')}
+    </tbody>
+  </table>
+  </div>
+  `;
+}
+
+/* =====================================================================
+   6. HEATMAP KOMPETITOR
+   ===================================================================== */
+function tierFromPercentile(pct){
+  if(pct<=0.25) return {label:'Sangat Kompetitif', emoji:'🟢', cls:'tag-green'};
+  if(pct<=0.5) return {label:'Kompetitif', emoji:'🟡', cls:'tag-amber'};
+  if(pct<=0.75) return {label:'Kurang Kompetitif', emoji:'🟠', cls:'tag-amber'};
+  return {label:'Tidak Kompetitif', emoji:'🔴', cls:'tag-red'};
+}
+function renderHeatmap(body){
+  const dates = distinctDates();
+  const allRows = [];
+  Object.keys(CATEGORY_META).forEach(cat=>{
+    const rows = rankedByCategory(cat, heatmapDate);
+    const n = rows.length;
+    rows.forEach(r=>{
+      const beliPct = (r.rank-1)/(Math.max(n-1,1));
+      const sortedJual = [...rows].sort((a,b)=>effJual(b)-effJual(a)); // higher jual = better, rank1=best
+      const jualRankIdx = sortedJual.findIndex(x=>x.id===r.id);
+      const jualPct = jualRankIdx/(Math.max(n-1,1));
+      const sortedSpread = [...rows].sort((a,b)=>a.spread-b.spread);
+      const spreadRankIdx = sortedSpread.findIndex(x=>x.id===r.id);
+      const spreadPct = spreadRankIdx/(Math.max(n-1,1));
+      const overallPct = (beliPct+jualPct+spreadPct)/3;
+      allRows.push({...r, category:cat, beliTier:tierFromPercentile(beliPct), jualTier:tierFromPercentile(jualPct),
+        spreadTier:tierFromPercentile(spreadPct), overallTier:tierFromPercentile(overallPct)});
+    });
+  });
+
+  body.innerHTML = `
+  <div style="margin-bottom:14px; display:flex; align-items:center; gap:10px;">
+    <label style="margin:0;">Tanggal:</label>
+    <select id="heatDateSel">${[...dates].reverse().map(d=>`<option value="${d}" ${d===heatmapDate?'selected':''}>${fmtDateLabel(d)}</option>`).join('')}</select>
+  </div>
+  <div class="legend">
+    <span>🟢 Sangat Kompetitif</span><span>🟡 Kompetitif</span><span>🟠 Kurang Kompetitif</span><span>🔴 Tidak Kompetitif</span>
+  </div>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Perusahaan</th><th>Kategori</th><th style="text-align:right;">Harga Beli</th><th>Tier Beli</th>
+      <th style="text-align:right;">Harga Jual</th><th>Tier Jual</th><th style="text-align:right;">Spread</th><th>Tier Spread</th><th>Overall</th></tr></thead>
+    <tbody>
+    ${allRows.map(r=>`<tr class="${isBSI(r.company)?'row-bsi':''}">
+      <td>${r.company}</td><td>${CATEGORY_META[r.category].short}</td>
+      <td class="num-cell">Rp ${fmt(r.eff)}</td><td><span class="heat-cell ${r.beliTier.cls}">${r.beliTier.emoji} ${r.beliTier.label}</span></td>
+      <td class="num-cell">Rp ${fmt(effJual(r))}</td><td><span class="heat-cell ${r.jualTier.cls}">${r.jualTier.emoji} ${r.jualTier.label}</span></td>
+      <td class="num-cell">${fmtPct(r.spread)}</td><td><span class="heat-cell ${r.spreadTier.cls}">${r.spreadTier.emoji} ${r.spreadTier.label}</span></td>
+      <td><span class="heat-cell ${r.overallTier.cls}">${r.overallTier.emoji} ${r.overallTier.label}</span></td>
+    </tr>`).join('')}
+    </tbody>
+  </table>
+  </div>
+  <div class="flag">Tier dihitung berdasarkan peringkat persentil dalam masing-masing kategori pada tanggal terpilih (25% teratas = Sangat Kompetitif, dst).</div>
+  `;
+  body.querySelector('#heatDateSel').addEventListener('change', e=>{ heatmapDate=e.target.value; renderAll(); });
+}
+
+/* =====================================================================
+   7. MOVEMENT HARIAN
+   ===================================================================== */
+function renderMovement(body){
+  const dates = distinctDates();
+  if(dates.length<2){
+    body.innerHTML = `<div class="empty">Butuh minimal 2 tanggal data untuk menampilkan pergerakan harian.</div>`;
+    return;
+  }
+  if(!movementDateA || !dates.includes(movementDateA)) movementDateA = dates[dates.length-2];
+  if(!movementDateB || !dates.includes(movementDateB)) movementDateB = dates[dates.length-1];
+
+  const rowsA = RECORDS.filter(r=>r.date===movementDateA && r.beli!=null);
+  const rows = rowsA.map(r=>{
+    const rowB = RECORDS.find(x=>x.date===movementDateB && x.category===r.category && x.company===r.company);
+    if(!rowB || rowB.beli==null) return null;
+    const curEff = effVal(rowB), prevEff = effVal(r);
+    const delta = curEff - prevEff;
+    const pct = delta/prevEff*100;
+    return {company:r.company, category:r.category, prev:prevEff, cur:curEff, delta, pct};
+  }).filter(Boolean);
+  rows.sort((a,b)=>b.delta-a.delta);
+
+  body.innerHTML = `
+  <div style="display:flex; align-items:flex-end; gap:14px; margin-bottom:16px; flex-wrap:wrap;">
+    <div><label>Tanggal Pembanding (A)</label>
+      <div class="datepart-group">${datePickerHtml('movA', dates, movementDateA)}</div>
+    </div>
+    <div style="font-family:'IBM Plex Mono',monospace; color:var(--muted); padding-bottom:8px;">→</div>
+    <div><label>Tanggal Pembanding (B)</label>
+      <div class="datepart-group">${datePickerHtml('movB', dates, movementDateB)}</div>
+    </div>
+  </div>
+  <div class="section-note" style="margin-bottom:14px;">Perbandingan ${fmtDateLabel(movementDateA)} → ${fmtDateLabel(movementDateB)}, harga dinormalisasi per gram.</div>
+  ${CATEGORY_ORDER.map(cat=>{
+    const catRows = rows.filter(r=>r.category===cat);
+    return `
+    <div class="section-title">${CATEGORY_META[cat].label}</div>
+    <div class="table-wrap" style="margin-bottom:26px;">
+    <table>
+      <thead><tr><th>Supplier</th><th style="text-align:right;">${fmtDateLabel(movementDateA)}</th><th style="text-align:right;">${fmtDateLabel(movementDateB)}</th>
+        <th style="text-align:right;">Change (Rp)</th><th style="text-align:right;">Change (%)</th><th>Status</th></tr></thead>
+      <tbody>
+      ${catRows.length===0?`<tr><td colspan="6" class="empty">Tidak ada supplier dengan data lengkap di kedua tanggal ini.</td></tr>`:
+      catRows.map(r=>`<tr class="${isBSI(r.company)?'row-bsi':''}">
+        <td>${r.company}</td>
+        <td class="num-cell">Rp ${fmt(r.prev)}</td><td class="num-cell">Rp ${fmt(r.cur)}</td>
+        <td class="num-cell" style="color:${r.delta>0?'var(--red)':r.delta<0?'var(--green)':'var(--muted)'};">
+          ${r.delta===0?'—':(r.delta>0?'⬆ +':'⬇ ')+'Rp '+fmt(Math.abs(r.delta))}</td>
+        <td class="num-cell" style="color:${r.delta>0?'var(--red)':r.delta<0?'var(--green)':'var(--muted)'};">${fmtPct(Math.abs(r.pct))}</td>
+        <td>${r.delta>0?'<span class="tag tag-red">Naik</span>':r.delta<0?'<span class="tag tag-green">Turun</span>':'<span class="tag tag-amber">Tetap</span>'}</td>
+      </tr>`).join('')}
+      </tbody>
+    </table>
+    </div>`;
+  }).join('')}
+  `;
+  wireDatePicker('movA', dates, d=>{ movementDateA=d; renderAll(); });
+  wireDatePicker('movB', dates, d=>{ movementDateB=d; renderAll(); });
+}
+
+/* =====================================================================
+   8. EXECUTIVE INSIGHT (AUTO GENERATED)
+   ===================================================================== */
+function renderInsight(body){
+  const ld = latestDate();
+  const kilo = rankedByCategory('kilobar', ld);
+  const fisik = rankedByCategory('fisik', ld);
+  const rekening = rankedByCategory('rekening', ld);
+  const bsi = kilo.find(r=>isBSI(r.company));
+  const cheapestKilo = kilo[0];
+  const allLatest = [...kilo, ...fisik, ...rekening];
+  const withSpread = allLatest.filter(r=>r.spread!=null && r.spread>0);
+  const minSpread = withSpread.length ? Math.min(...withSpread.map(r=>r.spread)) : null;
+  const lowestSpreadCos = withSpread.filter(r=>minSpread!=null && Math.abs(r.spread-minSpread)<0.05).map(r=>r.company);
+  const bsiRank = bsi ? bsi.rank : null;
+  const savingTon = (bsi && cheapestKilo) ? (bsi.eff-cheapestKilo.eff)*1000000 : null;
+  const selisihBsiRp = (bsi && cheapestKilo) ? bsi.eff-cheapestKilo.eff : null;
+
+  const insights = [];
+  insights.push(`<b>${cheapestKilo?cheapestKilo.company:'—'}</b> masih menjadi supplier kilobar paling kompetitif per ${fmtDateLabel(ld)}, dengan harga beli Rp ${fmt(cheapestKilo?.eff)}/gram.`);
+  insights.push(selisihBsiRp!=null ? `Harga beli BSI berada <b>Rp ${fmt(selisihBsiRp)}/gram</b> ${selisihBsiRp>=0?'di atas':'di bawah'} ${cheapestKilo?cheapestKilo.company:'supplier termurah'}.` : `Data harga beli BSI kilobar belum tersedia untuk tanggal ini.`);
+  insights.push(lowestSpreadCos.length ? `Spread terendah (${fmtPct(minSpread)}) dimiliki oleh <b>${lowestSpreadCos.join(', ')}</b>.` : `Data spread belum cukup untuk ditentukan.`);
+  insights.push(savingTon!=null ? `Terdapat potensi saving <b>Rp ${fmt(Math.abs(savingTon))}</b> per 1 ton jika sourcing dilakukan dari ${cheapestKilo.company} dibandingkan BSI.` : `Potensi saving belum dapat dihitung karena data tidak lengkap.`);
+  insights.push(bsiRank!=null ? `Posisi kompetitif BSI berada pada peringkat <b>${bsiRank} dari ${kilo.length}</b> supplier kilobar yang terpantau.` : `Posisi kompetitif BSI belum dapat ditentukan untuk kategori kilobar.`);
+
+  body.innerHTML = `<ul class="insight-list">${insights.map(t=>`<li>${t}</li>`).join('')}</ul>
+  <div class="flag" style="margin-top:14px;">Insight ini dihasilkan otomatis dari data terbaru (${fmtDateLabel(ld)}) dan akan berubah seiring data baru ditambahkan pada tab Data Input.</div>`;
+}
+
+/* =====================================================================
+   8b. LAPORAN HARIAN (Auto-generated printable/downloadable report)
+   ===================================================================== */
+function reportRankBadge(rank, n){
+  if(rank===1) return '<span class="tag tag-green">🟢 Termurah</span>';
+  if(rank===2) return '<span class="tag tag-amber">🟠 Runner Up</span>';
+  if(rank===n && n>2) return '<span class="tag tag-red">🔴 Termahal</span>';
+  return '#'+rank;
+}
+function reportRowClass(rank, n){
+  if(rank===1) return 'row-rank1';
+  if(rank===2) return 'row-rank2';
+  if(rank===n && n>2) return 'row-rankLast';
+  return '';
+}
+const REPORT_CAT_STYLE = {
+  kilobar: {icon:'🪙', accent:'#056967, #08A19E'},
+  fisik:   {icon:'🟡', accent:'#B37A0E, #F8BC51'},
+  rekening:{icon:'📱', accent:'#001489, #0047BB'}
+};
+function reportCategoryTable(cat, date, benchVal, benchName, benchLabel){
+  const rows = rankedByCategory(cat, date);
+  const n = rows.length;
+  const style = REPORT_CAT_STYLE[cat];
+  return `
+  <div class="report-card">
+    <div class="report-card-head" style="background:linear-gradient(120deg,${style.accent});">
+      <span class="report-card-icon">${style.icon}</span>${CATEGORY_META[cat].label}
+      <span class="report-card-count">${n} supplier</span>
+    </div>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>No</th><th>Perusahaan</th><th style="text-align:right;">Harga Beli</th><th style="text-align:right;">Harga Jual</th>
+        <th style="text-align:right;">Spread</th><th style="text-align:right;">Selisih vs ${benchName}</th><th>Ranking</th></tr></thead>
+      <tbody>
+      ${n===0?`<tr><td colspan="7" class="empty">Tidak ada data.</td></tr>`:
+        rows.map(r=>{
+          const jualEff = effJual(r);
+          const selBeli = benchVal!=null ? (r.eff-benchVal)/benchVal*100 : null;
+          const bsiCls = isBSI(r.company)?'row-bsi':'';
+          return `<tr class="${reportRowClass(r.rank,n)} ${bsiCls}">
+            <td>${r.rank}</td>
+            <td>${r.company}${isBSI(r.company)?' <span class="tag tag-blue">BSI</span>':''}${lateUpdateBadge(r)}</td>
+            <td class="num-cell">Rp ${fmt(r.eff)}</td>
+            <td class="num-cell">${jualEff==null?'Rp —':'Rp '+fmt(jualEff)}</td>
+            <td class="num-cell">${r.spread==null?'—':fmtPct(r.spread)}</td>
+            <td class="num-cell" style="color:${selBeli==null?'inherit':(selBeli>=0?'var(--red)':'var(--green)')};">${selBeli==null?'—':(selBeli>=0?'+':'')+fmtPct(selBeli)}</td>
+            <td>${reportRankBadge(r.rank,n)}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+    </div>
+  </div>`;
+}
+function renderReport(body){
+  const dates = distinctDates();
+  if(!reportDate || !dates.includes(reportDate)) reportDate = latestDate();
+  if(!reportBenchmark) reportBenchmark = 'xau';
+
+  body.innerHTML = `
+  <div style="margin-bottom:12px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+    <label style="margin:0;">Tanggal Laporan:</label>
+    <div class="datepart-group">${datePickerHtml('report', dates, reportDate)}</div>
+    <button type="button" class="btn" id="btnDownloadReportImg">⬇ Download Gambar (PNG)</button>
+  </div>
+  <div style="margin-bottom:16px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+    <label style="margin:0;">Acuan Selisih Harga:</label>
+    <div class="tabbar" id="reportBenchTabs" style="margin-bottom:0;">
+      <button data-bench="xau" class="${reportBenchmark==='xau'?'active':''}">vs Spot (XAU)</button>
+      <button data-bench="loco" class="${reportBenchmark==='loco'?'active':''}">vs Loco London (LBMA)</button>
+    </div>
+  </div>
+  <div id="reportContent">
+    ${buildReportHtml(reportDate)}
+  </div>
+  `;
+  wireDatePicker('report', dates, d=>{ reportDate=d; renderAll(); });
+  body.querySelectorAll('#reportBenchTabs button').forEach(b=>b.addEventListener('click', ()=>{ reportBenchmark=b.dataset.bench; renderAll(); }));
+
+  body.querySelector('#btnDownloadReportImg').addEventListener('click', async ()=>{
+    const btn = body.querySelector('#btnDownloadReportImg');
+    const el = document.getElementById('reportContent');
+    if(!window.html2canvas || !el) { showToast('Fitur download gambar tidak tersedia (html2canvas gagal dimuat).'); return; }
+    btn.disabled = true; btn.textContent = 'Membuat gambar...';
+    // Pastikan tabel yang bisa di-scroll horizontal (mis. di HP) ikut ter-capture penuh, tidak terpotong hanya bagian yang terlihat
+    el.classList.add('capturing-image');
+    try{
+      const canvas = await window.html2canvas(el, {
+        scale:2, backgroundColor:'#ffffff', useCORS:true,
+        windowWidth: 980, width: el.scrollWidth
+      });
+      canvas.toBlob(blob=>{
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `laporan-harga-emas-${reportDate}.png`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('Gambar laporan berhasil diunduh.');
+      });
+    }catch(err){
+      console.error(err);
+      showToast('Gagal membuat gambar laporan.');
+    }
+    el.classList.remove('capturing-image');
+    btn.disabled = false; btn.textContent = '⬇ Download Gambar (PNG)';
+  });
+}
+function buildReportHtml(date){
+  const benchName = reportBenchmark==='xau' ? 'XAU' : 'Loco London';
+  const benchTitle = reportBenchmark==='xau' ? 'HARGA SPOT XAU' : 'HARGA LOCO LONDON (LBMA)';
+  const kiloRows = rankedByCategory('kilobar', date);
+  const benchVal = kiloRows.find(x=>x.company===benchName)?.eff ?? null;
+  const dArr = distinctDates();
+  const idxOfDate = dArr.indexOf(date);
+  const prevDateForReport = idxOfDate>0 ? dArr[idxOfDate-1] : null;
+  let benchPrev = null;
+  if(prevDateForReport){
+    benchPrev = rankedByCategory('kilobar', prevDateForReport).find(x=>x.company===benchName)?.eff ?? null;
+  }
+  const kenaikan = (benchVal!=null && benchPrev!=null) ? benchVal-benchPrev : null;
+  const kenaikanPct = (kenaikan!=null && benchPrev) ? kenaikan/benchPrev*100 : null;
+
+  const kilo = rankedByCategory('kilobar', date), fisik = rankedByCategory('fisik', date), rekening = rankedByCategory('rekening', date);
+  const prevKilo = prevDateForReport ? rankedByCategory('kilobar', prevDateForReport) : [];
+  const prevFisik = prevDateForReport ? rankedByCategory('fisik', prevDateForReport) : [];
+  const prevRek = prevDateForReport ? rankedByCategory('rekening', prevDateForReport) : [];
+  const quickCards = [
+    {label:'Kilobar Termurah', row:kilo[0], prevRow:prevKilo[0], accent:'#08A19E', icon:'🪙'},
+    {label:'Fisik 1gr Termurah', row:fisik[0], prevRow:prevFisik[0], accent:'#F8BC51', icon:'🟡'},
+    {label:'Rekening Termurah', row:rekening[0], prevRow:prevRek[0], accent:'#0047BB', icon:'📱'}
+  ].map(c=>{
+    let deltaHtml = '';
+    if(c.row && c.prevRow && c.row.company===c.prevRow.company){
+      const d = c.row.eff - c.prevRow.eff;
+      const dPct = c.prevRow.eff ? d/c.prevRow.eff*100 : null;
+      deltaHtml = `<div class="report-quick-delta" style="color:${d>=0?'var(--red)':'var(--green)'};">${d===0?'— tetap':(d>0?'▲ +':'▼ ')+fmtPct(Math.abs(dPct))+' vs kemarin'}</div>`;
+    }
+    return `
+    <div class="report-quick-card" style="border-top-color:${c.accent};">
+      <div class="report-quick-icon-circle" style="background:${c.accent}22; color:${c.accent};">${c.icon}</div>
+      <div class="report-quick-label">${c.label}</div>
+      <div class="report-quick-company">🏅 ${c.row?c.row.company:'—'}</div>
+      <div class="report-quick-price">${c.row?'Rp '+fmt(c.row.eff)+' /gr':'—'}</div>
+      ${deltaHtml}
+    </div>`;
+  }).join('');
+
+  return `
+  <div class="report-header">
+    <div class="report-date-overlay">${fmtDateLabelFull(date).toUpperCase()}</div>
+  </div>
+  <div class="report-quick-grid">${quickCards}</div>
+  <div class="report-spot-banner">
+    <div class="report-spot-icon">📈</div>
+    <div class="report-spot-main">
+      <div class="report-spot-label">${benchTitle}</div>
+      <div class="report-spot-value">${benchVal==null?'—':'Rp '+fmt(benchVal)+' / gr'}</div>
+    </div>
+    <div class="report-spot-stats">
+      <div><span>${benchName} kemarin</span><b>${benchPrev==null?'—':'Rp '+fmt(benchPrev)+' / gr'}</b></div>
+      <div><span>${benchName} hari ini</span><b>${benchVal==null?'—':'Rp '+fmt(benchVal)+' / gr'}</b></div>
+      <div><span>Kenaikan</span><b>${kenaikan==null?'—':(kenaikan>=0?'+':'')+'Rp '+fmt(Math.abs(kenaikan))+' / gr'}</b></div>
+      <div><span>Perubahan</span><b style="color:${kenaikanPct==null?'inherit':(kenaikanPct>=0?'var(--red)':'var(--green)')};">${kenaikanPct==null?'—':(kenaikanPct>=0?'+':'')+fmtPct(kenaikanPct)+' '+(kenaikanPct>=0?'▲':'▼')}</b></div>
+    </div>
+  </div>
+  <div class="report-divider"><span>💎 RINCIAN HARGA PER KATEGORI</span></div>
+  ${reportCategoryTable('kilobar', date, benchVal, benchName, benchTitle)}
+  ${reportCategoryTable('fisik', date, benchVal, benchName, benchTitle)}
+  ${reportCategoryTable('rekening', date, benchVal, benchName, benchTitle)}
+  <div class="report-footer">
+    <div class="report-footer-brand">🏆 Gold Price Intel</div>
+    <div>Data bersumber dari database internal per <b>${fmtDateLabel(date)}</b>. Nilai kilobar dinormalisasi ke harga per gram. Acuan selisih: <b>${benchName}</b>.</div>
+  </div>
+  `;
+}
+
+/* =====================================================================
+   9. DATA INPUT HARIAN
+   ===================================================================== */
+function renderInput(body){
+  const allDates = [...distinctDates()].reverse();
+  const CAP = 30;
+  const dates = allDates.slice(0, CAP);
+  const shownRows = dates.flatMap(d=>RECORDS.filter(r=>r.date===d));
+
+  body.innerHTML = `
+  <div class="card" style="margin-bottom:24px;">
+    <div style="font-weight:600; font-size:14px; margin-bottom:14px;">Tambah / Perbarui Data Harga</div>
+    <form class="input-form" id="addForm">
+      <div><label>Tanggal</label><input type="date" id="f_date" required></div>
+      <div><label>Kategori</label>
+        <select id="f_cat" style="width:100%;">
+          ${Object.entries(CATEGORY_META).map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('')}
+        </select>
+      </div>
+      <div><label>Perusahaan</label><input type="text" id="f_company" list="companyList" placeholder="Pilih atau ketik baru" style="width:100%;" required><datalist id="companyList"></datalist></div>
+      <div><label>Harga Beli (Rp)</label><input type="text" id="f_beli" placeholder="cth: 2500000 atau 2,358 M" style="width:100%;" required><div class="section-note" id="f_beli_preview" style="margin-top:3px;"></div></div>
+      <div><label>Harga Jual (Rp)</label><input type="text" id="f_jual" placeholder="cth: 2400000 atau 2,320 M" style="width:100%;"><div class="section-note" id="f_jual_preview" style="margin-top:3px;"></div></div>
+      <div style="display:flex; align-items:flex-end;"><button type="submit" class="btn">+ Simpan Data</button></div>
+    </form>
+    <div class="flag" style="margin-top:10px;">Menyimpan/menghapus data akan meminta PIN tim (sekali per sesi). Jika perusahaan &amp; tanggal sudah ada, datanya akan diperbarui (bukan duplikat).</div>
+  </div>
+
+  <div class="card" style="margin-bottom:24px;">
+    <div style="font-weight:600; font-size:14px; margin-bottom:6px;">Download &amp; Upload Data (CSV)</div>
+    <div class="section-note" style="margin-bottom:14px;">Unduh seluruh data sebagai CSV untuk arsip/Excel, atau unggah CSV untuk menambahkan/memperbarui data secara massal (butuh PIN).</div>
+    <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+      <button type="button" class="btn" id="btnDownloadCsv">⬇ Download CSV</button>
+      <label class="btn btn-ghost" style="cursor:pointer; margin:0;">⬆ Upload CSV
+        <input type="file" id="fileUploadCsv" accept=".csv,text/csv" style="display:none;">
+      </label>
+      <span class="section-note" id="uploadStatus"></span>
+    </div>
+    <div class="flag" style="margin-top:10px;">Mendukung 2 format CSV: (1) hasil Download dari dashboard ini (kolom Tanggal, Kategori, Perusahaan, Harga Beli, Harga Jual), atau (2) format template harian (kolom Perusahaan, Harga Beli, Harga Jual, Spread, Date — dengan baris judul seksi "APLIKASI (REKENING EMAS)" / "HARGA EMAS FISIK" / "HARGA EMAS FISIK KILOBAR").</div>
+  </div>
+
+  <div class="section-title">Seluruh Data Tersimpan <span class="section-note" id="dataTableCount">${RECORDS.length} baris total • menampilkan ${shownRows.length} baris</span></div>
+  <div class="card" style="margin-bottom:16px;">
+    <div style="font-weight:600; font-size:13px; margin-bottom:12px;">🔍 Filter Pencarian</div>
+    <div class="filter-grid">
+      <div><label>Kategori</label>
+        <select id="filterCat" style="width:100%;">
+          <option value="">Semua Kategori</option>
+          ${Object.entries(CATEGORY_META).map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('')}
+        </select>
+      </div>
+      <div><label>Perusahaan</label>
+        <select id="filterCompany" style="width:100%;">
+          <option value="">Semua Perusahaan</option>
+        </select>
+      </div>
+      <div><label>Tanggal Dari</label><input type="date" id="filterDateFrom" style="width:100%;"></div>
+      <div><label>Tanggal Sampai</label><input type="date" id="filterDateTo" style="width:100%;"></div>
+      <div style="display:flex; align-items:flex-end;">
+        <button type="button" class="btn btn-ghost" id="btnResetFilter" style="width:100%;">✕ Reset Filter</button>
+      </div>
+    </div>
+  </div>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Tanggal</th><th>Kategori</th><th>Perusahaan</th><th style="text-align:right;">Harga Beli</th>
+      <th style="text-align:right;">Harga Jual</th><th style="text-align:right;">Spread</th><th></th></tr></thead>
+    <tbody id="dataTableBody"></tbody>
+  </table>
+  </div>
+  <div class="flag" id="dataTableFlag" style="margin-top:10px;"></div>
+  `;
+
+  const catSel = body.querySelector('#f_cat');
+  const dataList = body.querySelector('#companyList');
+  const beliInput = body.querySelector('#f_beli');
+  const jualInput = body.querySelector('#f_jual');
+  const beliPreview = body.querySelector('#f_beli_preview');
+  const jualPreview = body.querySelector('#f_jual_preview');
+
+  function updatePreview(input, previewEl){
+    const parsed = parseShorthandPrice(input.value);
+    previewEl.textContent = (input.value.trim() && parsed!=null) ? `= Rp ${fmt(parsed)}` : '';
+  }
+  function refreshPriceHints(){
+    const isKilobar = catSel.value==='kilobar';
+    const hint = isKilobar ? 'cth: 2358000000 atau 2,358 M (miliar)' : 'cth: 2500000 atau 2,5 Jt (juta)';
+    beliInput.placeholder = hint;
+    jualInput.placeholder = hint.replace('2358000000','2320000000').replace('2500000','2400000');
+  }
+  beliInput.addEventListener('input', ()=>updatePreview(beliInput, beliPreview));
+  jualInput.addEventListener('input', ()=>updatePreview(jualInput, jualPreview));
+
+  function refreshCompanies(){
+    dataList.innerHTML = CATEGORY_META[catSel.value].companies.map(c=>`<option value="${c}">`).join('');
+    refreshPriceHints();
+  }
+  refreshCompanies();
+  catSel.addEventListener('change', refreshCompanies);
+  body.querySelector('#f_date').value = new Date().toISOString().slice(0,10);
+
+  body.querySelector('#addForm').addEventListener('submit', async e=>{
+    e.preventDefault();
+    const submitBtn = e.target.querySelector('button[type=submit]');
+    const date = body.querySelector('#f_date').value;
+    const category = catSel.value;
+    const company = body.querySelector('#f_company').value.trim();
+    const beli = parseShorthandPrice(beliInput.value);
+    const jual = jualInput.value.trim() ? parseShorthandPrice(jualInput.value) : null;
+    if(beli==null){ alert('Harga Beli tidak valid. Gunakan angka biasa (2500000) atau singkatan (2,358 M).'); return; }
+    submitBtn.disabled = true; submitBtn.textContent = 'Menyimpan...';
+    const ok = await upsertEntry(date, category, company, beli, jual);
+    submitBtn.disabled = false; submitBtn.textContent = '+ Simpan Data';
+    if(ok){
+      rankingDate = null; heatmapDate = null; spreadDate = null; movementDateA = null; movementDateB = null;
+      showToast('Data tersimpan & langsung tersinkron untuk semua orang.');
+      renderAll();
+    }
+  });
+
+  const CAP_SEARCH = 300;
+  function isFilterActive(f){
+    return !!(f.cat || f.company || f.dateFrom || f.dateTo);
+  }
+  function buildFilteredRows(f){
+    if(!isFilterActive(f)){
+      return {rows: shownRows, note: allDates.length>CAP?`Menampilkan ${CAP} hari terbaru dari total ${allDates.length} hari. Gunakan Download CSV untuk melihat seluruh histori.`:null, active:false};
+    }
+    let matches = [...RECORDS].filter(r=>{
+      if(f.cat && r.category!==f.cat) return false;
+      if(f.company && r.company!==f.company) return false;
+      if(f.dateFrom && r.date<f.dateFrom) return false;
+      if(f.dateTo && r.date>f.dateTo) return false;
+      return true;
+    });
+    matches.sort((a,b)=> a.date<b.date?1:a.date>b.date?-1:0);
+    return {
+      rows: matches.slice(0,CAP_SEARCH),
+      note: matches.length===0 ? 'Tidak ada data yang cocok dengan filter yang dipilih.' : (matches.length>CAP_SEARCH ? `Menampilkan ${CAP_SEARCH} dari ${matches.length} hasil. Persempit filter untuk hasil lebih spesifik.` : null),
+      active:true
+    };
+  }
+  function currentFilters(){
+    return {
+      cat: body.querySelector('#filterCat').value,
+      company: body.querySelector('#filterCompany').value,
+      dateFrom: body.querySelector('#filterDateFrom').value,
+      dateTo: body.querySelector('#filterDateTo').value
+    };
+  }
+  function refreshCompanyOptions(){
+    const catVal = body.querySelector('#filterCat').value;
+    const companySel = body.querySelector('#filterCompany');
+    const prevVal = companySel.value;
+    let companies;
+    if(catVal){
+      companies = CATEGORY_META[catVal].companies;
+    } else {
+      companies = [...new Set(Object.values(CATEGORY_META).flatMap(v=>v.companies))].sort();
+    }
+    companySel.innerHTML = `<option value="">Semua Perusahaan</option>` + companies.map(c=>`<option value="${c}">${c}</option>`).join('');
+    if(companies.includes(prevVal)) companySel.value = prevVal;
+  }
+  function refreshDataTable(){
+    const f = currentFilters();
+    const {rows, note, active} = buildFilteredRows(f);
+    const countEl = body.querySelector('#dataTableCount');
+    const tbody = body.querySelector('#dataTableBody');
+    const flagEl = body.querySelector('#dataTableFlag');
+    if(countEl) countEl.textContent = `${RECORDS.length} baris total • menampilkan ${rows.length} baris${active?' (filter aktif)':''}`;
+    if(flagEl) flagEl.textContent = note || '';
+    if(tbody){
+      tbody.innerHTML = rows.length===0 ? `<tr><td colspan="7" class="empty">Tidak ada data.</td></tr>` :
+        rows.map((r,i)=>`<tr>
+          <td>${fmtDateLabel(r.date)}</td><td>${CATEGORY_META[r.category].short}</td><td>${r.company}${lateUpdateBadge(r)}</td>
+          <td class="num-cell">Rp ${fmt(r.beli)}</td><td class="num-cell">${r.jual==null?'—':'Rp '+fmt(r.jual)}</td>
+          <td class="num-cell">${fmtPct(spreadOf(r))}</td>
+          <td><button class="btn-danger" data-idx="${i}">Hapus</button></td>
+        </tr>`).join('');
+      tbody.querySelectorAll('[data-idx]').forEach(btn=>{
+        btn.addEventListener('click', async ()=>{
+          const r = rows[parseInt(btn.dataset.idx)];
+          if(!r) return;
+          if(!confirm(`Hapus data ${r.company} (${fmtDateLabel(r.date)})?`)) return;
+          const ok = await deleteEntry(r.date, r.category, r.company);
+          if(ok){
+            rankingDate = null; heatmapDate = null; spreadDate = null; movementDateA = null; movementDateB = null;
+            showToast('Data dihapus.');
+            renderAll();
+          }
+        });
+      });
+    }
+  }
+  refreshCompanyOptions();
+  body.querySelector('#filterCat').addEventListener('change', ()=>{ refreshCompanyOptions(); refreshDataTable(); });
+  ['#filterCompany','#filterDateFrom','#filterDateTo'].forEach(sel=>{
+    body.querySelector(sel).addEventListener(sel==='#filterCompany'?'change':'change', refreshDataTable);
+  });
+  body.querySelector('#btnResetFilter').addEventListener('click', ()=>{
+    body.querySelector('#filterCat').value = '';
+    refreshCompanyOptions();
+    body.querySelector('#filterCompany').value = '';
+    body.querySelector('#filterDateFrom').value = '';
+    body.querySelector('#filterDateTo').value = '';
+    refreshDataTable();
+  });
+  refreshDataTable();
+
+  body.querySelector('#btnDownloadCsv').addEventListener('click', downloadCsv);
+  body.querySelector('#fileUploadCsv').addEventListener('change', handleCsvUpload);
+}
+
+/* ---------- CSV export/import ---------- */
+function csvCell(v){
+  if(v===null||v===undefined) return '';
+  const s = String(v);
+  return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
+}
+function downloadCsv(){
+  const header = ['Tanggal','Kategori','Perusahaan','Harga Beli','Harga Jual'];
+  const lines = [header.join(',')];
+  [...RECORDS].sort((a,b)=> a.date<b.date?-1:a.date>b.date?1:0).forEach(r=>{
+    lines.push([csvCell(r.date), csvCell(r.category), csvCell(r.company), csvCell(r.beli), csvCell(r.jual)].join(','));
+  });
+  const csv = '\uFEFF' + lines.join('\r\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `gold-price-data-${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('CSV berhasil diunduh.');
+}
+function parseCsvLine(line){
+  const out = []; let cur=''; let inQ=false;
+  for(let i=0;i<line.length;i++){
+    const ch=line[i];
+    if(inQ){
+      if(ch==='"'){ if(line[i+1]==='"'){ cur+='"'; i++; } else { inQ=false; } }
+      else cur+=ch;
+    } else {
+      if(ch==='"') inQ=true;
+      else if(ch===','){ out.push(cur); cur=''; }
+      else cur+=ch;
+    }
+  }
+  out.push(cur);
+  return out;
+}
+function parseMoney(v){
+  if(v===undefined||v===null) return null;
+  const s = String(v).trim();
+  if(s==='') return null;
+  const cleaned = s.replace(/[^0-9\-]/g,'');
+  if(cleaned==='' || cleaned==='-') return null;
+  const n = parseInt(cleaned,10);
+  return n===0 ? null : n;
+}
+function parseFlexibleDate(s){
+  s = (s||'').trim();
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const months = {jan:'01',feb:'02',mar:'03',apr:'04',may:'05',jun:'06',jul:'07',aug:'08',sep:'09',oct:'10',nov:'11',dec:'12'};
+  let m = s.match(/^(\d{1,2})-([A-Za-z]{3,})-(\d{2,4})$/);
+  if(m){
+    const mon = months[m[2].slice(0,3).toLowerCase()];
+    if(mon){ let yr=m[3]; if(yr.length===2) yr='20'+yr; return `${yr}-${mon}-${m[1].padStart(2,'0')}`; }
+  }
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if(m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  return s;
+}
+// Alias untuk menyamakan penamaan lama (database historis) dengan penamaan template terbaru
+const COMPANY_ALIAS = {
+  'kilobar|AMNT 1000 GR':'Amman Mineral Nusa Tenggara 1000 gr',
+  'kilobar|GALERI 1000 GR':'Galeri 24 1000 gr',
+  'kilobar|STONEX - IDR':'StoneX (kilogram)',
+  'fisik|STONEX - IDR':'StoneX',
+  'kilobar|UOB - IDR':'UOB (Cast Bars 1 kilobar)',
+  'kilobar|XAU - IDR':'XAU',
+  'kilobar|LOCO LONDON - IDR':'Loco London'
+};
+function canonicalCompany(category, name){
+  const key = category+'|'+name.toUpperCase();
+  return COMPANY_ALIAS[key] || name;
+}
+// Judul seksi yang muncul pada template ekspor harian (format tanpa kolom Kategori eksplisit)
+const SECTION_HEADERS = {
+  'APLIKASI (REKENING EMAS)':'rekening',
+  'HARGA EMAS FISIK':'fisik',
+  'HARGA EMAS FISIK KILOBAR':'kilobar'
+};
+async function handleCsvUpload(e){
+  const file = e.target.files[0];
+  const statusEl = document.getElementById('uploadStatus');
+  if(!file) return;
+  try{
+    const text = await file.text();
+    const lines = text.replace(/^\uFEFF/,'').split(/\r\n|\n|\r/).filter(l=>l.trim()!=='');
+    if(lines.length<2){ statusEl.textContent = 'File CSV kosong atau tidak valid.'; return; }
+    const rawHeader = parseCsvLine(lines[0]).map(h=>h.trim().toLowerCase());
+    const idx = {
+      date: rawHeader.findIndex(h=>h.includes('tanggal')||h.includes('date')),
+      category: rawHeader.findIndex(h=>h.includes('kategori')||h.includes('category')),
+      company: rawHeader.findIndex(h=>h.includes('perusahaan')||h.includes('company')),
+      beli: rawHeader.findIndex(h=>h.includes('beli')&&!h.includes('limit')),
+      jual: rawHeader.findIndex(h=>h.includes('jual')&&!h.includes('limit'))
+    };
+    if(idx.company===-1 || idx.beli===-1){
+      statusEl.textContent = 'Header CSV tidak dikenali. Pastikan ada kolom Perusahaan dan Harga Beli.';
+      return;
+    }
+    let parsed=0, skipped=0;
+    const useExplicitCategory = idx.category!==-1;
+    let currentCategory = null;
+    const byDate = new Map(); // date -> [{category, company, beli, jual}]
+    for(let i=1;i<lines.length;i++){
+      const cols = parseCsvLine(lines[i]);
+      const companyRaw = (cols[idx.company]||'').trim();
+      const beli = parseMoney(cols[idx.beli]);
+
+      if(!useExplicitCategory){
+        const headerKey = companyRaw.toUpperCase();
+        if(SECTION_HEADERS[headerKey]){ currentCategory = SECTION_HEADERS[headerKey]; continue; }
+        if(!companyRaw){ continue; }
+      }
+
+      const category = useExplicitCategory ? (cols[idx.category]||'').trim().toLowerCase() : currentCategory;
+      const date = parseFlexibleDate(idx.date>-1 ? (cols[idx.date]||'') : '');
+      const jual = idx.jual>-1 ? parseMoney(cols[idx.jual]) : null;
+
+      if(!date || !CATEGORY_META[category] || !companyRaw || beli==null){ skipped++; continue; }
+      const company = canonicalCompany(category, companyRaw);
+      if(!byDate.has(date)) byDate.set(date, []);
+      byDate.get(date).push({category, company, beli, jual});
+      parsed++;
+    }
+    if(parsed===0){
+      statusEl.textContent = `Tidak ada baris valid untuk diunggah${skipped>0?` (${skipped} dilewati)`:''}.`;
+      return;
+    }
+    statusEl.textContent = `Mengunggah ${parsed} baris ke ${byDate.size} tanggal...`;
+    const result = await bulkUpsert(byDate);
+    if(!result.ok){
+      statusEl.textContent = 'Upload dibatalkan (perlu PIN untuk menulis data).';
+      return;
+    }
+    rankingDate = null; heatmapDate = null; spreadDate = null; movementDateA = null; movementDateB = null;
+    showToast(`Upload selesai: ${result.added} baris tersinkron${skipped>0?`, ${skipped} dilewati`:''}.`);
+    renderAll();
+  }catch(err){
+    console.error(err);
+    statusEl.textContent = 'Gagal membaca file CSV.';
+  }
+}
+
+/* =====================================================================
+   INIT
+   ===================================================================== */
+renderAuthWidget();
+renderAll(); // tampilkan loading state dulu
+startLiveSync();
+initRippleEffect();
+initCustomTooltips();
+</script>
+</body>
+</html>
